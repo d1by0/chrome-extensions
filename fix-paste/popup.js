@@ -184,47 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const content = await getExtractedContent();
       
-      const element = document.createElement('div');
-      element.innerHTML = `
-        <div style="font-family: 'Outfit', sans-serif; color: #1e293b; padding: 20px; line-height: 1.6;">
-          <h1 style="font-size: 26px; font-weight: 600; margin-bottom: 6px; color: #0f172a; line-height: 1.25;">${content.title}</h1>
-          <div style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Source: <a href="${content.url}" style="color: #4f46e5; text-decoration: none;">${content.url}</a></div>
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 24px;">
-          <div class="pdf-body-content">
-            ${content.html}
-          </div>
-        </div>
-      `;
-
-      const style = document.createElement('style');
-      style.textContent = `
-        .pdf-body-content p { font-size: 14px; margin-bottom: 16px; color: #334155; }
-        .pdf-body-content h2 { font-size: 18px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-        .pdf-body-content h3 { font-size: 15px; font-weight: 500; margin-top: 20px; margin-bottom: 8px; color: #1e293b; }
-        .pdf-body-content ul, .pdf-body-content ol { margin-bottom: 16px; padding-left: 20px; }
-        .pdf-body-content li { font-size: 14px; margin-bottom: 6px; color: #334155; }
-        .pdf-body-content img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 6px; }
-        .pdf-body-content table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 13px; }
-        .pdf-body-content th, .pdf-body-content td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; }
-        .pdf-body-content th { background-color: #f8fafc; font-weight: 600; color: #0f172a; }
-      `;
-      element.appendChild(style);
-      
-      const titleCleaned = (content.title || 'page')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      const filename = `${titleCleaned}.pdf`;
-
-      const opt = {
-        margin:       0.75,
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
-      await html2pdf().set(opt).from(element).save();
+      // Save content to local storage for print.html to retrieve
+      chrome.storage.local.set({ pdfContent: content }, () => {
+        // Open the native print page in a new tab
+        chrome.tabs.create({ url: 'print.html' });
+      });
       
     } catch (err) {
       showError(err.message);
