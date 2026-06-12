@@ -19,29 +19,10 @@
           sendResponse({ success: false, error: error.message });
         });
       return true; // Keep message channel open for asynchronous response
-    } else if (request.action === 'extractAndCopy') {
-      const options = request.options || {};
-      extractContent(options)
-        .then(extractedData => {
-          const format = options.format || 'text';
-          let promise;
-          if (format === 'text' || format === 'html') {
-            promise = writeToClipboard(extractedData.text, extractedData.html);
-          } else {
-            const textToCopy = format === 'markdown' ? extractedData.markdown : extractedData.json;
-            promise = writeToClipboard(textToCopy, null);
-          }
-          return promise;
-        })
-        .then(() => {
-          showToastFeedback("Clean content copied!");
-          sendResponse({ success: true });
-        })
-        .catch(err => {
-          showToastFeedback("Failed to copy content");
-          sendResponse({ success: false, error: err.message });
-        });
-      return true; // Keep message channel open for asynchronous response
+    } else if (request.action === 'showToast') {
+      showToastFeedback(request.message || "Clean content copied!");
+      sendResponse({ success: true });
+      return true;
     }
     return true;
   });

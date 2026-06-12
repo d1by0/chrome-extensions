@@ -96,12 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
         chrome.tabs.sendMessage(tab.id, {
-          action: 'extractAndCopy',
-          options: {
-            includeImages: optImages.checked,
-            preserveLinks: optLinks.checked,
-            format: 'text'
-          }
+          action: 'showToast',
+          message: 'Clean content copied!'
         });
       }
 
