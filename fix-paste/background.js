@@ -30,7 +30,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         options: {
           includeImages: true,
           preserveLinks: true,
-          format: 'markdown' // Default to Markdown for context menu copy
+          format: 'text' // Default to Text for context menu copy
         }
       });
     } catch (err) {

@@ -6,7 +6,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  let selectedFormat = 'markdown';
+  let selectedFormat = 'text';
   let extractedContent = null;
 
   // UI elements
