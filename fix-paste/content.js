@@ -10,45 +10,46 @@
   // Listen for extraction messages from the extension popup or background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'extract') {
-      try {
-        const options = request.options || {};
-        const extractedData = extractContent(options);
-        sendResponse({ success: true, data: extractedData });
-      } catch (error) {
-        sendResponse({ success: false, error: error.message });
-      }
+      const options = request.options || {};
+      extractContent(options)
+        .then(extractedData => {
+          sendResponse({ success: true, data: extractedData });
+        })
+        .catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Keep message channel open for asynchronous response
     } else if (request.action === 'extractAndCopy') {
-      try {
-        const options = request.options || {};
-        const extractedData = extractContent(options);
-        const format = options.format || 'text';
-        
-        let promise;
-        if (format === 'text') {
-          promise = writeToClipboard(extractedData.text, extractedData.html);
-        } else {
-          const textToCopy = format === 'markdown' ? extractedData.markdown : extractedData.json;
-          promise = writeToClipboard(textToCopy, null);
-        }
-
-        promise.then(() => {
+      const options = request.options || {};
+      extractContent(options)
+        .then(extractedData => {
+          const format = options.format || 'text';
+          let promise;
+          if (format === 'text' || format === 'html') {
+            promise = writeToClipboard(extractedData.text, extractedData.html);
+          } else {
+            const textToCopy = format === 'markdown' ? extractedData.markdown : extractedData.json;
+            promise = writeToClipboard(textToCopy, null);
+          }
+          return promise;
+        })
+        .then(() => {
           showToastFeedback("Clean content copied!");
           sendResponse({ success: true });
-        }).catch(err => {
+        })
+        .catch(err => {
           showToastFeedback("Failed to copy content");
           sendResponse({ success: false, error: err.message });
         });
-      } catch (error) {
-        sendResponse({ success: false, error: error.message });
-      }
+      return true; // Keep message channel open for asynchronous response
     }
-    return true; // Keep message channel open for asynchronous response
+    return true;
   });
 
   /**
-   * Main extraction driver function
+   * Main extraction driver function (asynchronous)
    */
-  function extractContent(options) {
+  async function extractContent(options) {
     const candidate = findBestContentContainer();
     if (!candidate) {
       throw new Error("Could not identify the main content container on this page.");
@@ -58,16 +59,18 @@
     const clonedContainer = candidate.cloneNode(true);
     cleanContainer(clonedContainer);
 
-    // Extract blocks from the cleaned DOM tree
+    // Extract blocks from the cleaned DOM tree (before converting images to base64 to keep markdown/text clean)
     const blocks = extractBlocks(clonedContainer, options);
 
-    // Format output based on requested formats
+    // Format HTML output (converts images to base64 asynchronously)
+    const html = await getCleanHTML(clonedContainer, options);
+
     return {
       title: document.title || 'Untitled Page',
       url: window.location.href,
       markdown: convertToMarkdown(blocks, options),
       text: convertToPlainText(blocks, options),
-      html: getCleanHTML(clonedContainer, options),
+      html: html,
       json: JSON.stringify(blocks, null, 2)
     };
   }
@@ -532,7 +535,7 @@
     blocks.forEach(block => {
       switch (block.type) {
         case 'heading':
-          text += `\n${nodeToPlainText(block.node, options).toUpperCase()}\n\n`;
+          text += `\n**${nodeToPlainText(block.node, options).toUpperCase()}**\n\n`;
           break;
         case 'paragraph':
           text += `${nodeToPlainText(block.node, options)}\n\n`;
@@ -658,10 +661,40 @@
   }
 
   /**
+   * Helper to convert image links inside a container to self-contained Base64 Data URLs
+   */
+  async function convertImagesToBase64(container) {
+    const images = Array.from(container.querySelectorAll('img'));
+    for (const img of images) {
+      const src = img.getAttribute('src');
+      if (src && !src.startsWith('data:')) {
+        const absoluteSrc = makeAbsoluteURL(src);
+        try {
+          const res = await fetch(absoluteSrc);
+          const blob = await res.blob();
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          img.setAttribute('src', dataUrl);
+        } catch (e) {
+          console.warn('Could not convert image to base64:', absoluteSrc, e);
+          img.setAttribute('src', absoluteSrc);
+        }
+      }
+    }
+  }
+
+  /**
    * Sanitizes DOM tree to extract clean, minimal, semantic HTML tags suitable for copy-pasting
    */
-  function getCleanHTML(element, options) {
+  async function getCleanHTML(element, options) {
     const clone = element.cloneNode(true);
+    if (options.includeImages) {
+      await convertImagesToBase64(clone);
+    }
     
     function cleanNode(node) {
       if (node.nodeType === Node.ELEMENT_NODE) {
@@ -698,7 +731,7 @@
             }
           } else if (tag === 'img' && name === 'src') {
             if (options.includeImages) {
-              node.setAttribute('src', makeAbsoluteURL(node.getAttribute('src')));
+              // Note: src is already replaced with base64/absolute URL by convertImagesToBase64
             } else {
               node.remove();
             }

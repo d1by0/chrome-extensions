@@ -1,67 +1,18 @@
 /**
  * Fix Paste - Extension Interface Controller (Popup Script)
  * 
- * Manages user configurations, injects content scripts, receives data,
- * and facilitates copying/downloading of cleaned outputs.
- * Saves user selections and options to storage.
+ * Manages extraction commands, clipboard formatting (both rich HTML and
+ * formatted plain text simultaneously), and file export downloads.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  let selectedFormat = 'text';
   let extractedContent = null;
 
   // UI elements
-  const formatButtons = document.querySelectorAll('.format-btn');
   const btnCopy = document.getElementById('btn-copy');
   const btnDownload = document.getElementById('btn-download');
   const btnPDF = document.getElementById('btn-pdf');
   const statusText = document.getElementById('status-text');
-
-  const optImages = document.getElementById('opt-images');
-  const optLinks = document.getElementById('opt-links');
-
-  // Load preferences from local storage
-  chrome.storage.local.get({
-    format: 'text',
-    includeImages: true,
-    preserveLinks: true
-  }, (items) => {
-    selectedFormat = items.format;
-    optImages.checked = items.includeImages;
-    optLinks.checked = items.preserveLinks;
-
-    // Set active class on the stored format button
-    formatButtons.forEach(btn => {
-      if (btn.getAttribute('data-format') === selectedFormat) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-    updateStatusDisplay();
-  });
-
-  // Format selection interaction
-  formatButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      formatButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedFormat = btn.getAttribute('data-format');
-      updateStatusDisplay();
-      
-      // Save setting to storage
-      chrome.storage.local.set({ format: selectedFormat });
-    });
-  });
-
-  // Option change interactions
-  optImages.addEventListener('change', () => {
-    chrome.storage.local.set({ includeImages: optImages.checked });
-  });
-
-  optLinks.addEventListener('change', () => {
-    chrome.storage.local.set({ preserveLinks: optLinks.checked });
-  });
 
   // Helper to ensure content is extracted
   async function getExtractedContent() {
@@ -79,8 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const options = {
-      includeImages: optImages.checked,
-      preserveLinks: optLinks.checked
+      includeImages: true,
+      preserveLinks: true
     };
 
     return new Promise((resolve, reject) => {
@@ -110,14 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const content = await getExtractedContent();
       const data = {};
       
-      if (selectedFormat === 'text' || selectedFormat === 'html') {
-        data['text/plain'] = new Blob([content.text], { type: 'text/plain' });
-        if (content.html) {
-          data['text/html'] = new Blob([content.html], { type: 'text/html' });
-        }
-      } else {
-        const textToCopy = await getFormattedText();
-        data['text/plain'] = new Blob([textToCopy], { type: 'text/plain' });
+      data['text/plain'] = new Blob([content.text], { type: 'text/plain' });
+      if (content.html) {
+        data['text/html'] = new Blob([content.html], { type: 'text/html' });
       }
 
       const item = new ClipboardItem(data);
@@ -129,9 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.tabs.sendMessage(tab.id, {
           action: 'extractAndCopy',
           options: {
-            includeImages: optImages.checked,
-            preserveLinks: optLinks.checked,
-            format: selectedFormat
+            includeImages: true,
+            preserveLinks: true,
+            format: 'text'
           }
         });
       }
@@ -148,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Download file action
+  // Download text file action
   btnDownload.addEventListener('click', async () => {
     const originalText = btnDownload.textContent;
     btnDownload.textContent = 'Preparing...';
@@ -156,11 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const content = await getExtractedContent();
-      const textToDownload = await getFormattedText();
       const filename = getDownloadFilename();
-      const mimeType = getMimeType();
+      const mimeType = 'text/plain;charset=utf-8';
 
-      const blob = new Blob([textToDownload], { type: mimeType });
+      const blob = new Blob([content.text], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -198,92 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Helper: Retrieve active formatted text
-  async function getFormattedText() {
-    if (!extractedContent) return '';
-    switch (selectedFormat) {
-      case 'markdown':
-        return extractedContent.markdown;
-      case 'text':
-        return extractedContent.text;
-      case 'json':
-        return extractedContent.json;
-      case 'html':
-        let cssText = '';
-        try {
-          const res = await fetch(chrome.runtime.getURL('print.css'));
-          cssText = await res.text();
-        } catch (e) {
-          console.error('Failed to load print styles:', e);
-        }
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>${extractedContent.title}</title>
-  <style>
-    ${cssText}
-  </style>
-</head>
-<body>
-  <div id="print-container">
-    <h1 id="print-title">${extractedContent.title}</h1>
-    <div id="print-meta">Source: <a href="${extractedContent.url}">${extractedContent.url}</a></div>
-    <hr>
-    <div id="print-content">${extractedContent.html}</div>
-  </div>
-</body>
-</html>`;
-      default:
-        return '';
-    }
-  }
-
-  // Helper: Get file name based on output format
+  // Helper: Get file name based on page title
   function getDownloadFilename() {
     const title = (extractedContent?.title || 'page')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
     
-    switch (selectedFormat) {
-      case 'markdown':
-        return `${title}.md`;
-      case 'text':
-        return `${title}.txt`;
-      case 'html':
-        return `${title}.html`;
-      case 'json':
-        return `${title}.json`;
-      default:
-        return `${title}.txt`;
-    }
-  }
-
-  // Helper: Get correct Mime Type for downloads
-  function getMimeType() {
-    switch (selectedFormat) {
-      case 'markdown':
-        return 'text/markdown;charset=utf-8';
-      case 'text':
-        return 'text/plain;charset=utf-8';
-      case 'html':
-        return 'text/html;charset=utf-8';
-      case 'json':
-        return 'application/json;charset=utf-8';
-      default:
-        return 'text/plain;charset=utf-8';
-    }
-  }
-
-  // Helper: Update status information text
-  function updateStatusDisplay() {
-    let formatLabel = 'Markdown';
-    if (selectedFormat === 'text') formatLabel = 'Plain Text';
-    if (selectedFormat === 'json') formatLabel = 'JSON';
-    if (selectedFormat === 'html') formatLabel = 'HTML';
-
-    statusText.textContent = `Ready to copy as ${formatLabel}.`;
+    return `${title}.txt`;
   }
 
   // Helper: Render error message inside status section
@@ -293,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       statusText.style.color = '';
-      updateStatusDisplay();
+      statusText.textContent = 'Ready to extract page content.';
     }, 4000);
   }
 });
