@@ -19,6 +19,26 @@
           sendResponse({ success: false, error: error.message });
         });
       return true; // Keep message channel open for asynchronous response
+    } else if (request.action === 'extractAndCopy') {
+      const options = request.options || {};
+      extractContent(options)
+        .then(extractedData => {
+          let textToCopy = extractedData.text;
+          if (options.format === 'markdown') {
+            textToCopy = extractedData.markdown;
+          } else if (options.format === 'json') {
+            textToCopy = extractedData.json;
+          }
+          return writeToClipboard(textToCopy, extractedData.html)
+            .then(() => {
+              showToastFeedback("Clean content copied!");
+              sendResponse({ success: true });
+            });
+        })
+        .catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
     } else if (request.action === 'showToast') {
       showToastFeedback(request.message || "Clean content copied!");
       sendResponse({ success: true });
