@@ -14,6 +14,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnPDF = document.getElementById('btn-pdf');
   const statusText = document.getElementById('status-text');
 
+  const optImages = document.getElementById('opt-images');
+  const optLinks = document.getElementById('opt-links');
+
+  // Load preferences from local storage (defaulting to true)
+  chrome.storage.local.get({
+    includeImages: true,
+    preserveLinks: true
+  }, (items) => {
+    optImages.checked = items.includeImages;
+    optLinks.checked = items.preserveLinks;
+  });
+
+  // Settings change handlers (clear cache to force fresh parse)
+  optImages.addEventListener('change', () => {
+    extractedContent = null;
+    chrome.storage.local.set({ includeImages: optImages.checked });
+  });
+
+  optLinks.addEventListener('change', () => {
+    extractedContent = null;
+    chrome.storage.local.set({ preserveLinks: optLinks.checked });
+  });
+
   // Helper to ensure content is extracted
   async function getExtractedContent() {
     if (extractedContent) return extractedContent;
@@ -30,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const options = {
-      includeImages: true,
-      preserveLinks: true
+      includeImages: optImages.checked,
+      preserveLinks: optLinks.checked
     };
 
     return new Promise((resolve, reject) => {
@@ -75,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.tabs.sendMessage(tab.id, {
           action: 'extractAndCopy',
           options: {
-            includeImages: true,
-            preserveLinks: true,
+            includeImages: optImages.checked,
+            preserveLinks: optLinks.checked,
             format: 'text'
           }
         });
