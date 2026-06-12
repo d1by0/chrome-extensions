@@ -3,16 +3,34 @@
  * 
  * Implements heuristic-based DOM parsing to identify, extract, and clean
  * the main content area of a webpage, converting it to structured outputs.
+ * Supports HTML Table parsing and floating user feedback.
  */
 
 (function () {
-  // Listen for extraction messages from the extension popup
+  // Listen for extraction messages from the extension popup or background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'extract') {
       try {
         const options = request.options || {};
         const extractedData = extractContent(options);
         sendResponse({ success: true, data: extractedData });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    } else if (request.action === 'extractAndCopy') {
+      try {
+        const options = request.options || {};
+        const extractedData = extractContent(options);
+        const format = options.format || 'markdown';
+        const textToCopy = format === 'markdown' ? extractedData.markdown : (format === 'json' ? extractedData.json : extractedData.text);
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showToastFeedback("Clean content copied!");
+          sendResponse({ success: true });
+        }).catch(err => {
+          showToastFeedback("Failed to copy content");
+          sendResponse({ success: false, error: err.message });
+        });
       } catch (error) {
         sendResponse({ success: false, error: error.message });
       }
@@ -151,7 +169,6 @@
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent.trim();
         if (text) {
-          // If parent is body or a raw container, represent as text
           const parentTag = node.parentNode.tagName;
           if (['DIV', 'SECTION', 'ARTICLE', 'BODY'].includes(parentTag)) {
             blocks.push({ type: 'paragraph', text });
@@ -163,6 +180,15 @@
       if (node.nodeType !== Node.ELEMENT_NODE) return;
 
       const tag = node.tagName.toLowerCase();
+
+      // Check table elements
+      if (tag === 'table') {
+        const tableBlock = parseTableElement(node);
+        if (tableBlock) {
+          blocks.push(tableBlock);
+        }
+        return; // Skip inner traversal for individual cells
+      }
 
       // Check headings
       if (/^h[1-6]$/.test(tag)) {
@@ -228,12 +254,50 @@
   }
 
   /**
+   * Parses standard HTML table elements into structured arrays of cell data
+   */
+  function parseTableElement(tableNode) {
+    const rows = [];
+    const trElements = tableNode.querySelectorAll('tr');
+    
+    trElements.forEach(tr => {
+      const cells = [];
+      const cellElements = tr.querySelectorAll('th, td');
+      cellElements.forEach(cell => {
+        cells.push(cell.innerText.trim().replace(/\s+/g, ' '));
+      });
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
+    });
+
+    if (rows.length === 0) return null;
+
+    // Distinguish headers and rows
+    let headerRow = [];
+    let dataRows = rows;
+
+    const firstRowHasTh = trElements[0]?.querySelector('th');
+    if (firstRowHasTh || rows.length > 1) {
+      headerRow = rows[0];
+      dataRows = rows.slice(1);
+    } else {
+      headerRow = Array(rows[0].length).fill('Column');
+    }
+
+    return {
+      type: 'table',
+      headers: headerRow,
+      rows: dataRows
+    };
+  }
+
+  /**
    * Formats blocks into a clean Markdown document
    */
   function convertToMarkdown(blocks, options) {
     let markdown = '';
     
-    // Add page meta header
     markdown += `# ${document.title || 'Untitled Page'}\n\n`;
     markdown += `Source: [${window.location.host}](${window.location.href})\n\n`;
     markdown += `---\n\n`;
@@ -255,6 +319,19 @@
         case 'ordered-list':
           block.items.forEach((item, index) => {
             markdown += `${index + 1}. ${item}\n`;
+          });
+          markdown += '\n';
+          break;
+        case 'table':
+          const headers = block.headers;
+          markdown += `| ${headers.join(' | ')} |\n`;
+          markdown += `| ${headers.map(() => '---').join(' | ')} |\n`;
+          block.rows.forEach(row => {
+            const paddedRow = [...row];
+            while (paddedRow.length < headers.length) {
+              paddedRow.push('');
+            }
+            markdown += `| ${paddedRow.join(' | ')} |\n`;
           });
           markdown += '\n';
           break;
@@ -306,6 +383,41 @@
           });
           text += '\n';
           break;
+        case 'table':
+          const colsCount = block.headers.length;
+          const colWidths = Array(colsCount).fill(0);
+          
+          block.headers.forEach((h, colIndex) => {
+            colWidths[colIndex] = Math.max(colWidths[colIndex], h.length);
+          });
+          
+          block.rows.forEach(row => {
+            row.forEach((cell, colIndex) => {
+              if (colIndex < colsCount) {
+                colWidths[colIndex] = Math.max(colWidths[colIndex], cell.length);
+              }
+            });
+          });
+          
+          const padCell = (val, width) => {
+            return val + ' '.repeat(Math.max(0, width - val.length));
+          };
+          
+          const headerCells = block.headers.map((h, idx) => padCell(h, colWidths[idx]));
+          text += `| ${headerCells.join(' | ')} |\n`;
+          
+          const separators = colWidths.map(w => '-'.repeat(w));
+          text += `| ${separators.join(' | ')} |\n`;
+          
+          block.rows.forEach(row => {
+            const rowCells = [];
+            for (let idx = 0; idx < colsCount; idx++) {
+              rowCells.push(padCell(row[idx] || '', colWidths[idx]));
+            }
+            text += `| ${rowCells.join(' | ')} |\n`;
+          });
+          text += '\n';
+          break;
         case 'image':
           text += `[Image: ${block.alt || 'No description'} - ${block.src}]\n\n`;
           break;
@@ -316,5 +428,49 @@
     });
 
     return text.trim() + '\n';
+  }
+
+  /**
+   * Displays a temporary floating status toast feedback overlay in the tab
+   */
+  function showToastFeedback(message) {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    
+    // Inline styling for the feedback toast
+    Object.assign(toast.style, {
+      position: 'fixed',
+      bottom: '30px',
+      right: '30px',
+      backgroundColor: 'hsl(222, 25%, 10%)',
+      color: 'hsl(222, 15%, 90%)',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: '14px',
+      fontWeight: '500',
+      boxShadow: '0 10px 25px hsla(0, 0%, 0%, 0.3)',
+      border: '1px solid hsla(222, 20%, 25%, 0.5)',
+      zIndex: '999999',
+      opacity: '0',
+      transform: 'translateY(10px)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    });
+
+    document.body.appendChild(toast);
+
+    // Trigger transition Reflow
+    toast.offsetHeight;
+
+    // Animate In
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+
+    // Animate Out & Destroy
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      toast.addEventListener('transitionend', () => toast.remove());
+    }, 2500);
   }
 })();

@@ -3,10 +3,13 @@
 Fix Paste is a lightweight Chrome extension that parses webpages, extracts core content (removing navigation bars, sidebars, comments, and advertisements), and converts it into structured formats.
 
 ## Version
-- **Current Version**: 1.0.0 (Initial Release)
+- **Current Version**: 1.1.0 (Table Support & Context Menu Update)
 
 ## Features
 - **Smart DOM Heuristics**: Automatically scores parent elements based on text density, child node tags, and class/id keyword attributes to locate the core content element.
+- **Table Parsing**: Intelligently extracts HTML tables and formats them into clean GFM (GitHub Flavored Markdown) tables, aligned plain-text layouts, or structured JSON.
+- **Right-Click Context Menu**: Allows copying formatted page content instantly via a right-click browser menu action without opening the popup interface.
+- **Feedback Overlay**: Displays floating toast feedback overlays directly on the active webpage indicating successful extractions.
 - **Structural Formats**: Converts DOM elements to clean Markdown, formatted Plain Text, or structured JSON blocks.
 - **Configurable Filters**: Offers simple options to toggle the inclusion of images and link preservation during extraction.
 - **Offline & Private**: Functions entirely within the browser sandbox without communicating with remote servers or tracking user data.
