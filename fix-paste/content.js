@@ -244,9 +244,10 @@
 
       // Check images
       if (tag === 'img' && options.includeImages) {
-        const src = node.getAttribute('src');
+        const rawSrc = node.getAttribute('src');
         const alt = node.getAttribute('alt') || '';
-        if (src && !src.startsWith('data:image')) {
+        if (rawSrc && !rawSrc.startsWith('data:image')) {
+          const src = makeAbsoluteURL(rawSrc);
           blocks.push({ type: 'image', src, alt });
         }
         return;
@@ -254,9 +255,10 @@
 
       // Fallback for links if inside other raw blocks
       if (tag === 'a' && options.preserveLinks) {
-        const href = node.getAttribute('href');
+        const rawHref = node.getAttribute('href');
         const text = node.innerText.trim();
-        if (href && text) {
+        if (rawHref && text) {
+          const href = makeAbsoluteURL(rawHref);
           blocks.push({ type: 'link', href, text });
         }
         return;
@@ -580,13 +582,19 @@
         attrs.forEach(attr => {
           const name = attr.name.toLowerCase();
           if (tag === 'a' && name === 'href') {
-            if (!options.preserveLinks) {
+            if (options.preserveLinks) {
+              node.setAttribute('href', makeAbsoluteURL(node.getAttribute('href')));
+            } else {
               node.removeAttribute('href');
             }
-          } else if (tag === 'img' && (name === 'src' || name === 'alt')) {
-            if (!options.includeImages && name === 'src') {
+          } else if (tag === 'img' && name === 'src') {
+            if (options.includeImages) {
+              node.setAttribute('src', makeAbsoluteURL(node.getAttribute('src')));
+            } else {
               node.remove();
             }
+          } else if (tag === 'img' && name === 'alt') {
+            // Keep alt attribute
           } else {
             // Strip classes, ids, styles, datasets, custom attrs
             node.removeAttribute(attr.name);
@@ -616,5 +624,17 @@
     
     const item = new ClipboardItem(data);
     return navigator.clipboard.write([item]);
+  }
+
+  /**
+   * Resolves relative URLs (links/images) to full absolute URLs
+   */
+  function makeAbsoluteURL(url) {
+    if (!url) return '';
+    try {
+      return new URL(url, window.location.href).href;
+    } catch (e) {
+      return url;
+    }
   }
 })();
