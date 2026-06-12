@@ -37,21 +37,20 @@
         </div>
       </div>
 
-      <button id="btn-extract" class="btn-primary">Extract Content</button>
+      <button id="btn-copy" class="btn-primary">Copy to Clipboard</button>
 
-      <div id="result-section" class="result-section hidden">
-        <div class="status-summary">
-          <span id="status-text">Content extracted successfully.</span>
-        </div>
-        <div class="action-grid">
-          <button id="btn-copy" class="btn-secondary">Copy to Clipboard</button>
-          <button id="btn-download" class="btn-secondary">Download File</button>
-        </div>
+      <div class="action-grid">
+        <button id="btn-download" class="btn-secondary">Download File</button>
+        <button id="btn-pdf" class="btn-secondary">Save as PDF</button>
+      </div>
+
+      <div class="status-summary">
+        <span id="status-text">Ready to copy clean text.</span>
       </div>
     </main>
 
     <footer class="app-footer">
-      <span class="version-text">v1.0.0</span>
+      <span class="version-text">v1.1.0</span>
     </footer>
   </div>
   <script src="popup.js"></script>

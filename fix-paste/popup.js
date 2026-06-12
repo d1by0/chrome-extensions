@@ -12,10 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // UI elements
   const formatButtons = document.querySelectorAll('.format-btn');
-  const btnExtract = document.getElementById('btn-extract');
-  const resultSection = document.getElementById('result-section');
   const btnCopy = document.getElementById('btn-copy');
   const btnDownload = document.getElementById('btn-download');
+  const btnPDF = document.getElementById('btn-pdf');
   const statusText = document.getElementById('status-text');
 
   const optImages = document.getElementById('opt-images');
@@ -64,64 +63,57 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ preserveLinks: optLinks.checked });
   });
 
-  // Extract Content action
-  btnExtract.addEventListener('click', async () => {
-    btnExtract.textContent = 'Extracting...';
-    btnExtract.disabled = true;
+  // Helper to ensure content is extracted
+  async function getExtractedContent() {
+    if (extractedContent) return extractedContent;
     
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab) {
-        throw new Error('No active browser tab detected.');
-      }
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      throw new Error('No active browser tab detected.');
+    }
 
-      // Inject the extraction script dynamically
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js']
-      });
+    // Inject the extraction script dynamically
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js']
+    });
 
-      // Construct options object
-      const options = {
-        includeImages: optImages.checked,
-        preserveLinks: optLinks.checked
-      };
+    const options = {
+      includeImages: optImages.checked,
+      preserveLinks: optLinks.checked
+    };
 
-      // Query content script
+    return new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(tab.id, { action: 'extract', options }, (response) => {
-        btnExtract.textContent = 'Extract Content';
-        btnExtract.disabled = false;
-
         if (chrome.runtime.lastError) {
-          showError('Cannot extract content on this page. Try reloading the tab.');
+          reject(new Error('Cannot read page content. Try reloading the tab.'));
           return;
         }
 
         if (response && response.success) {
           extractedContent = response.data;
-          resultSection.classList.remove('hidden');
-          updateStatusDisplay();
+          resolve(extractedContent);
         } else {
-          showError(response ? response.error : 'Content extraction failed.');
+          reject(new Error(response ? response.error : 'Content extraction failed.'));
         }
       });
-    } catch (err) {
-      btnExtract.textContent = 'Extract Content';
-      btnExtract.disabled = false;
-      showError(err.message);
-    }
-  });
+    });
+  }
 
   // Copy to clipboard action
   btnCopy.addEventListener('click', async () => {
-    if (!extractedContent) return;
+    const originalText = btnCopy.textContent;
+    btnCopy.textContent = 'Copying...';
+    btnCopy.disabled = true;
 
     try {
+      const content = await getExtractedContent();
       const data = {};
+      
       if (selectedFormat === 'text') {
-        data['text/plain'] = new Blob([extractedContent.text], { type: 'text/plain' });
-        if (extractedContent.html) {
-          data['text/html'] = new Blob([extractedContent.html], { type: 'text/html' });
+        data['text/plain'] = new Blob([content.text], { type: 'text/plain' });
+        if (content.html) {
+          data['text/html'] = new Blob([content.html], { type: 'text/html' });
         }
       } else {
         const textToCopy = getFormattedText();
@@ -131,28 +123,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = new ClipboardItem(data);
       await navigator.clipboard.write([item]);
 
-      const originalText = btnCopy.textContent;
+      // Trigger floating overlay feedback on the host page
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'extractAndCopy',
+          options: {
+            includeImages: optImages.checked,
+            preserveLinks: optLinks.checked,
+            format: selectedFormat
+          }
+        });
+      }
+
       btnCopy.textContent = 'Copied!';
-      btnCopy.disabled = true;
-      
       setTimeout(() => {
         btnCopy.textContent = originalText;
         btnCopy.disabled = false;
       }, 1500);
     } catch (err) {
-      showError('Failed to copy to clipboard.');
+      btnCopy.textContent = originalText;
+      btnCopy.disabled = false;
+      showError(err.message);
     }
   });
 
   // Download file action
-  btnDownload.addEventListener('click', () => {
-    if (!extractedContent) return;
-
-    const textToDownload = getFormattedText();
-    const filename = getDownloadFilename();
-    const mimeType = getMimeType();
+  btnDownload.addEventListener('click', async () => {
+    const originalText = btnDownload.textContent;
+    btnDownload.textContent = 'Preparing...';
+    btnDownload.disabled = true;
 
     try {
+      const content = await getExtractedContent();
+      const textToDownload = getFormattedText();
+      const filename = getDownloadFilename();
+      const mimeType = getMimeType();
+
       const blob = new Blob([textToDownload], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -161,7 +168,155 @@ document.addEventListener('DOMContentLoaded', () => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      showError('Failed to trigger download.');
+      showError(err.message);
+    } finally {
+      btnDownload.textContent = originalText;
+      btnDownload.disabled = false;
+    }
+  });
+
+  // Print/Save as PDF action
+  btnPDF.addEventListener('click', async () => {
+    const originalText = btnPDF.textContent;
+    btnPDF.textContent = 'Preparing PDF...';
+    btnPDF.disabled = true;
+
+    try {
+      const content = await getExtractedContent();
+      const printWindow = window.open('', '_blank');
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${content.title}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+          <style>
+            body {
+              font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              line-height: 1.6;
+              color: hsl(222, 25%, 15%);
+              max-width: 800px;
+              margin: 40px auto;
+              padding: 0 24px;
+              background-color: #fff;
+            }
+            h1 {
+              font-size: 2.2rem;
+              font-weight: 600;
+              margin-bottom: 8px;
+              color: hsl(222, 25%, 10%);
+              letter-spacing: -0.025em;
+              line-height: 1.25;
+            }
+            .meta {
+              font-size: 0.9rem;
+              color: hsl(222, 10%, 45%);
+              margin-bottom: 24px;
+            }
+            .meta a {
+              color: hsl(258, 65%, 50%);
+              text-decoration: none;
+            }
+            hr {
+              border: 0;
+              border-top: 1px solid hsl(222, 20%, 90%);
+              margin-bottom: 30px;
+            }
+            p {
+              margin-bottom: 20px;
+              font-size: 1.05rem;
+              color: hsl(222, 20%, 20%);
+            }
+            h2 {
+              font-size: 1.6rem;
+              font-weight: 600;
+              margin-top: 36px;
+              margin-bottom: 14px;
+              color: hsl(222, 25%, 12%);
+              border-bottom: 1px solid hsl(222, 20%, 95%);
+              padding-bottom: 6px;
+            }
+            h3 {
+              font-size: 1.25rem;
+              font-weight: 500;
+              margin-top: 24px;
+              margin-bottom: 10px;
+              color: hsl(222, 25%, 15%);
+            }
+            ul, ol {
+              margin-bottom: 20px;
+              padding-left: 24px;
+            }
+            li {
+              margin-bottom: 8px;
+              color: hsl(222, 20%, 20%);
+            }
+            img {
+              max-width: 100%;
+              height: auto;
+              display: block;
+              margin: 24px auto;
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 28px 0;
+              font-size: 0.95rem;
+            }
+            th, td {
+              border: 1px solid hsl(222, 20%, 88%);
+              padding: 12px 14px;
+              text-align: left;
+            }
+            th {
+              background-color: hsl(222, 20%, 97%);
+              font-weight: 600;
+              color: hsl(222, 25%, 15%);
+            }
+            @media print {
+              body {
+                margin: 20px;
+                color: #000;
+              }
+              h1, h2, h3 {
+                page-break-after: avoid;
+              }
+              tr {
+                page-break-inside: avoid;
+              }
+              img {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${content.title}</h1>
+          <div class="meta">Source: <a href="${content.url}">${content.url}</a></div>
+          <hr>
+          ${content.html}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            };
+          </script>
+        </body>
+        </html>
+      `;
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btnPDF.textContent = originalText;
+      btnPDF.disabled = false;
     }
   });
 
@@ -215,23 +370,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Helper: Update status information text
   function updateStatusDisplay() {
-    if (!extractedContent) return;
-    
     let formatLabel = 'Markdown';
     if (selectedFormat === 'text') formatLabel = 'Plain Text';
     if (selectedFormat === 'json') formatLabel = 'JSON';
 
-    statusText.textContent = `Ready to paste as ${formatLabel}.`;
+    statusText.textContent = `Ready to copy as ${formatLabel}.`;
   }
 
   // Helper: Render error message inside status section
   function showError(msg) {
     statusText.textContent = msg;
     statusText.style.color = 'hsl(350, 75%, 65%)';
-    resultSection.classList.remove('hidden');
 
     setTimeout(() => {
       statusText.style.color = '';
+      updateStatusDisplay();
     }, 4000);
   }
 });

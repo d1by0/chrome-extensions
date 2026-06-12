@@ -66,7 +66,7 @@
       title: document.title || 'Untitled Page',
       url: window.location.href,
       markdown: convertToMarkdown(blocks, options),
-      text: convertToPlainText(blocks),
+      text: convertToPlainText(blocks, options),
       html: getCleanHTML(clonedContainer, options),
       json: JSON.stringify(blocks, null, 2)
     };
@@ -426,7 +426,7 @@
   /**
    * Formats blocks into structured plain text
    */
-  function convertToPlainText(blocks) {
+  function convertToPlainText(blocks, options) {
     let text = '';
     
     text += `${document.title || 'Untitled Page'}\n`;
@@ -489,10 +489,14 @@
           text += '\n';
           break;
         case 'image':
-          text += `[Image: ${block.alt || 'No description'} - ${block.src}]\n\n`;
+          text += `{image: ${block.alt || 'Untitled'}}\n\n`;
           break;
         case 'link':
-          text += `${block.text} (${block.href})\n\n`;
+          if (options && options.preserveLinks) {
+            text += `${block.text} (${block.href})\n\n`;
+          } else {
+            text += `${block.text}\n\n`;
+          }
           break;
       }
     });
