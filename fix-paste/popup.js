@@ -110,13 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const content = await getExtractedContent();
       const data = {};
       
-      if (selectedFormat === 'text') {
+      if (selectedFormat === 'text' || selectedFormat === 'html') {
         data['text/plain'] = new Blob([content.text], { type: 'text/plain' });
         if (content.html) {
           data['text/html'] = new Blob([content.html], { type: 'text/html' });
         }
       } else {
-        const textToCopy = getFormattedText();
+        const textToCopy = await getFormattedText();
         data['text/plain'] = new Blob([textToCopy], { type: 'text/plain' });
       }
 
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const content = await getExtractedContent();
-      const textToDownload = getFormattedText();
+      const textToDownload = await getFormattedText();
       const filename = getDownloadFilename();
       const mimeType = getMimeType();
 
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Helper: Retrieve active formatted text
-  function getFormattedText() {
+  async function getFormattedText() {
     if (!extractedContent) return '';
     switch (selectedFormat) {
       case 'markdown':
@@ -208,6 +208,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return extractedContent.text;
       case 'json':
         return extractedContent.json;
+      case 'html':
+        let cssText = '';
+        try {
+          const res = await fetch(chrome.runtime.getURL('print.css'));
+          cssText = await res.text();
+        } catch (e) {
+          console.error('Failed to load print styles:', e);
+        }
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${extractedContent.title}</title>
+  <style>
+    ${cssText}
+  </style>
+</head>
+<body>
+  <div id="print-container">
+    <h1 id="print-title">${extractedContent.title}</h1>
+    <div id="print-meta">Source: <a href="${extractedContent.url}">${extractedContent.url}</a></div>
+    <hr>
+    <div id="print-content">${extractedContent.html}</div>
+  </div>
+</body>
+</html>`;
       default:
         return '';
     }
@@ -225,6 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${title}.md`;
       case 'text':
         return `${title}.txt`;
+      case 'html':
+        return `${title}.html`;
       case 'json':
         return `${title}.json`;
       default:
@@ -239,6 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'text/markdown;charset=utf-8';
       case 'text':
         return 'text/plain;charset=utf-8';
+      case 'html':
+        return 'text/html;charset=utf-8';
       case 'json':
         return 'application/json;charset=utf-8';
       default:
@@ -251,6 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let formatLabel = 'Markdown';
     if (selectedFormat === 'text') formatLabel = 'Plain Text';
     if (selectedFormat === 'json') formatLabel = 'JSON';
+    if (selectedFormat === 'html') formatLabel = 'HTML';
 
     statusText.textContent = `Ready to copy as ${formatLabel}.`;
   }

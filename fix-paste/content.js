@@ -170,6 +170,70 @@
   /**
    * Traverses DOM recursively to extract structured block elements
    */
+  /**
+   * Recursively formats node children into Markdown inline elements
+   */
+  function nodeToMarkdown(node, options) {
+    let md = '';
+    if (!node) return md;
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        md += child.textContent;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'strong' || tag === 'b') {
+          md += `**${nodeToMarkdown(child, options)}**`;
+        } else if (tag === 'em' || tag === 'i') {
+          md += `*${nodeToMarkdown(child, options)}*`;
+        } else if (tag === 'a') {
+          const href = child.getAttribute('href');
+          const text = nodeToMarkdown(child, options).trim();
+          if (options.preserveLinks && href && text) {
+            md += `[${text}](${makeAbsoluteURL(href)})`;
+          } else {
+            md += text;
+          }
+        } else if (tag === 'code') {
+          md += `\`${child.innerText}\``;
+        } else if (tag === 'br') {
+          md += '\n';
+        } else {
+          md += nodeToMarkdown(child, options);
+        }
+      }
+    });
+    return md;
+  }
+
+  /**
+   * Recursively formats node children into plain text with optional link URLs
+   */
+  function nodeToPlainText(node, options) {
+    let txt = '';
+    if (!node) return txt;
+    node.childNodes.forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        txt += child.textContent;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'a') {
+          const href = child.getAttribute('href');
+          const text = nodeToPlainText(child, options).trim();
+          if (options.preserveLinks && href && text) {
+            txt += `${text} (${makeAbsoluteURL(href)})`;
+          } else {
+            txt += text;
+          }
+        } else if (tag === 'br') {
+          txt += '\n';
+        } else {
+          txt += nodeToPlainText(child, options);
+        }
+      }
+    });
+    return txt;
+  }
+
   function extractBlocks(element, options) {
     const blocks = [];
     
@@ -179,7 +243,9 @@
         if (text) {
           const parentTag = node.parentNode.tagName;
           if (['DIV', 'SECTION', 'ARTICLE', 'BODY'].includes(parentTag)) {
-            blocks.push({ type: 'paragraph', text });
+            const mockP = document.createElement('p');
+            mockP.textContent = text;
+            blocks.push({ type: 'paragraph', node: mockP });
           }
         }
         return;
@@ -195,7 +261,7 @@
         if (tableBlock) {
           blocks.push(tableBlock);
         }
-        return; // Skip inner traversal for individual cells
+        return; // Skip inner traversal
       }
 
       // Check div-based grid tables
@@ -213,16 +279,29 @@
         blocks.push({
           type: 'heading',
           level,
-          text: node.innerText.trim()
+          node: node.cloneNode(true)
         });
         return;
       }
 
       // Check paragraph
       if (tag === 'p') {
-        const text = node.innerText.trim();
-        if (text) {
-          blocks.push({ type: 'paragraph', text });
+        if (node.innerText.trim()) {
+          blocks.push({
+            type: 'paragraph',
+            node: node.cloneNode(true)
+          });
+        }
+        return;
+      }
+
+      // Check blockquote
+      if (tag === 'blockquote') {
+        if (node.innerText.trim()) {
+          blocks.push({
+            type: 'blockquote',
+            node: node.cloneNode(true)
+          });
         }
         return;
       }
@@ -231,12 +310,23 @@
       if (tag === 'ul' || tag === 'ol') {
         const items = [];
         node.querySelectorAll(':scope > li').forEach(li => {
-          items.push(li.innerText.trim());
+          items.push(li.cloneNode(true));
         });
         if (items.length > 0) {
           blocks.push({
             type: tag === 'ol' ? 'ordered-list' : 'unordered-list',
             items
+          });
+        }
+        return;
+      }
+
+      // Check pre/code blocks
+      if (tag === 'pre') {
+        if (node.innerText.trim()) {
+          blocks.push({
+            type: 'code-block',
+            text: node.innerText.trim()
           });
         }
         return;
@@ -283,7 +373,7 @@
       const cells = [];
       const cellElements = tr.querySelectorAll('th, td');
       cellElements.forEach(cell => {
-        cells.push(cell.innerText.trim().replace(/\s+/g, ' '));
+        cells.push(cell.cloneNode(true));
       });
       if (cells.length > 0) {
         rows.push(cells);
@@ -301,7 +391,7 @@
       headerRow = rows[0];
       dataRows = rows.slice(1);
     } else {
-      headerRow = Array(rows[0].length).fill('Column');
+      headerRow = Array(rows[0].length).fill(null);
     }
 
     return {
@@ -346,7 +436,7 @@
         break;
       }
 
-      const rowData = cols.map(col => col.innerText.trim().replace(/\s+/g, ' '));
+      const rowData = cols.map(col => col.cloneNode(true));
       rows.push(rowData);
     }
 
@@ -375,33 +465,39 @@
     blocks.forEach(block => {
       switch (block.type) {
         case 'heading':
-          markdown += `${'#'.repeat(block.level)} ${block.text}\n\n`;
+          markdown += `${'#'.repeat(block.level)} ${nodeToMarkdown(block.node, options)}\n\n`;
           break;
         case 'paragraph':
-          markdown += `${block.text}\n\n`;
+          markdown += `${nodeToMarkdown(block.node, options)}\n\n`;
+          break;
+        case 'blockquote':
+          markdown += `> ${nodeToMarkdown(block.node, options).split('\n').join('\n> ')}\n\n`;
+          break;
+        case 'code-block':
+          markdown += `\`\`\`\n${block.text}\n\`\`\`\n\n`;
           break;
         case 'unordered-list':
           block.items.forEach(item => {
-            markdown += `- ${item}\n`;
+            markdown += `- ${nodeToMarkdown(item, options)}\n`;
           });
           markdown += '\n';
           break;
         case 'ordered-list':
           block.items.forEach((item, index) => {
-            markdown += `${index + 1}. ${item}\n`;
+            markdown += `${index + 1}. ${nodeToMarkdown(item, options)}\n`;
           });
           markdown += '\n';
           break;
         case 'table':
-          const headers = block.headers;
-          markdown += `| ${headers.join(' | ')} |\n`;
-          markdown += `| ${headers.map(() => '---').join(' | ')} |\n`;
+          const mdHeaders = block.headers.map(hNode => hNode ? nodeToMarkdown(hNode, options).trim().replace(/\r?\n/g, ' ') : 'Column');
+          markdown += `| ${mdHeaders.join(' | ')} |\n`;
+          markdown += `| ${mdHeaders.map(() => '---').join(' | ')} |\n`;
           block.rows.forEach(row => {
-            const paddedRow = [...row];
-            while (paddedRow.length < headers.length) {
-              paddedRow.push('');
+            const mdRow = row.map(cellNode => cellNode ? nodeToMarkdown(cellNode, options).trim().replace(/\r?\n/g, ' ') : '');
+            while (mdRow.length < mdHeaders.length) {
+              mdRow.push('');
             }
-            markdown += `| ${paddedRow.join(' | ')} |\n`;
+            markdown += `| ${mdRow.join(' | ')} |\n`;
           });
           markdown += '\n';
           break;
@@ -436,32 +532,41 @@
     blocks.forEach(block => {
       switch (block.type) {
         case 'heading':
-          text += `\n${block.text.toUpperCase()}\n\n`;
+          text += `\n${nodeToPlainText(block.node, options).toUpperCase()}\n\n`;
           break;
         case 'paragraph':
-          text += `${block.text}\n\n`;
+          text += `${nodeToPlainText(block.node, options)}\n\n`;
+          break;
+        case 'blockquote':
+          text += `> ${nodeToPlainText(block.node, options).split('\n').join('\n> ')}\n\n`;
+          break;
+        case 'code-block':
+          text += `\n--------------------\n${block.text}\n--------------------\n\n`;
           break;
         case 'unordered-list':
           block.items.forEach(item => {
-            text += `* ${item}\n`;
+            text += `* ${nodeToPlainText(item, options)}\n`;
           });
           text += '\n';
           break;
         case 'ordered-list':
           block.items.forEach((item, index) => {
-            text += `${index + 1}. ${item}\n`;
+            text += `${index + 1}. ${nodeToPlainText(item, options)}\n`;
           });
           text += '\n';
           break;
         case 'table':
-          const colsCount = block.headers.length;
+          const textHeaders = block.headers.map(hNode => hNode ? nodeToPlainText(hNode, options).trim().replace(/\s+/g, ' ') : 'Column');
+          const textRows = block.rows.map(row => row.map(cellNode => cellNode ? nodeToPlainText(cellNode, options).trim().replace(/\s+/g, ' ') : ''));
+          
+          const colsCount = textHeaders.length;
           const colWidths = Array(colsCount).fill(0);
           
-          block.headers.forEach((h, colIndex) => {
+          textHeaders.forEach((h, colIndex) => {
             colWidths[colIndex] = Math.max(colWidths[colIndex], h.length);
           });
           
-          block.rows.forEach(row => {
+          textRows.forEach(row => {
             row.forEach((cell, colIndex) => {
               if (colIndex < colsCount) {
                 colWidths[colIndex] = Math.max(colWidths[colIndex], cell.length);
@@ -473,13 +578,13 @@
             return val + ' '.repeat(Math.max(0, width - val.length));
           };
           
-          const headerCells = block.headers.map((h, idx) => padCell(h, colWidths[idx]));
+          const headerCells = textHeaders.map((h, idx) => padCell(h, colWidths[idx]));
           text += `| ${headerCells.join(' | ')} |\n`;
           
           const separators = colWidths.map(w => '-'.repeat(w));
           text += `| ${separators.join(' | ')} |\n`;
           
-          block.rows.forEach(row => {
+          textRows.forEach(row => {
             const rowCells = [];
             for (let idx = 0; idx < colsCount; idx++) {
               rowCells.push(padCell(row[idx] || '', colWidths[idx]));
@@ -566,7 +671,7 @@
         const allowedTags = [
           'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li',
           'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'img',
-          'strong', 'b', 'em', 'i', 'span', 'br'
+          'strong', 'b', 'em', 'i', 'span', 'br', 'blockquote', 'pre', 'code'
         ];
         
         if (!allowedTags.includes(tag)) {

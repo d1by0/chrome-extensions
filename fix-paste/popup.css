@@ -84,7 +84,7 @@ body {
 
 .format-selector {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background-color: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
