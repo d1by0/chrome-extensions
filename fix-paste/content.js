@@ -190,6 +190,15 @@
         return; // Skip inner traversal for individual cells
       }
 
+      // Check div-based grid tables
+      if (tag === 'div') {
+        const divTableBlock = detectAndParseDivTable(node);
+        if (divTableBlock) {
+          blocks.push(divTableBlock);
+          return; // Skip inner traversal
+        }
+      }
+
       // Check headings
       if (/^h[1-6]$/.test(tag)) {
         const level = parseInt(tag.substring(1), 10);
@@ -284,6 +293,57 @@
     } else {
       headerRow = Array(rows[0].length).fill('Column');
     }
+
+    return {
+      type: 'table',
+      headers: headerRow,
+      rows: dataRows
+    };
+  }
+
+  /**
+   * Detects and parses custom grid/flex tables built with nested divs
+   */
+  function detectAndParseDivTable(node) {
+    if (node.tagName.toLowerCase() !== 'div') return null;
+
+    const children = Array.from(node.children);
+    // Div-based tables must contain at least 2 rows
+    if (children.length < 2) return null;
+
+    let isTable = true;
+    let colCount = -1;
+    const rows = [];
+
+    for (const child of children) {
+      if (child.tagName.toLowerCase() !== 'div') {
+        isTable = false;
+        break;
+      }
+
+      const cols = Array.from(child.children);
+      // Row must contain at least 2 column nodes
+      if (cols.length < 2) {
+        isTable = false;
+        break;
+      }
+
+      if (colCount === -1) {
+        colCount = cols.length;
+      } else if (cols.length !== colCount) {
+        // All rows must have identical column counts
+        isTable = false;
+        break;
+      }
+
+      const rowData = cols.map(col => col.innerText.trim().replace(/\s+/g, ' '));
+      rows.push(rowData);
+    }
+
+    if (!isTable || rows.length === 0) return null;
+
+    const headerRow = rows[0];
+    const dataRows = rows.slice(1);
 
     return {
       type: 'table',
