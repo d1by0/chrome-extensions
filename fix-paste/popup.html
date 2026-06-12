@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Paste</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <h1 class="app-title">Fix Paste</h1>
+      <p class="app-subtitle">Content Extraction Engine</p>
+    </header>
+
+    <main class="app-content">
+      <div class="control-group">
+        <label class="control-label">Target Format</label>
+        <div class="format-selector">
+          <button class="format-btn active" data-format="markdown">Markdown</button>
+          <button class="format-btn" data-format="text">Text</button>
+          <button class="format-btn" data-format="json">JSON</button>
+        </div>
+      </div>
+
+      <div class="options-panel">
+        <div class="option-row">
+          <label for="opt-images" class="option-label">Include images</label>
+          <input type="checkbox" id="opt-images" checked>
+        </div>
+        <div class="option-row">
+          <label for="opt-links" class="option-label">Preserve links</label>
+          <input type="checkbox" id="opt-links" checked>
+        </div>
+      </div>
+
+      <button id="btn-extract" class="btn-primary">Extract Content</button>
+
+      <div id="result-section" class="result-section hidden">
+        <div class="status-summary">
+          <span id="status-text">Content extracted successfully.</span>
+        </div>
+        <div class="action-grid">
+          <button id="btn-copy" class="btn-secondary">Copy to Clipboard</button>
+          <button id="btn-download" class="btn-secondary">Download File</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <span class="version-text">v1.0.0</span>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
