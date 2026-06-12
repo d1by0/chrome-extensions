@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Fix Paste",
+  "version": "1.0.0",
+  "description": "Extract clean, structured markdown, plain text, or JSON content from any webpage, removing ads, navigation menus, and footers.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
