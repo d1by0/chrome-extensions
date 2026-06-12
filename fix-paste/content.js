@@ -440,21 +440,25 @@
     // Inline styling for the feedback toast
     Object.assign(toast.style, {
       position: 'fixed',
-      bottom: '30px',
-      right: '30px',
-      backgroundColor: 'hsl(222, 25%, 10%)',
-      color: 'hsl(222, 15%, 90%)',
-      padding: '12px 20px',
+      bottom: '24px',
+      right: '24px',
+      backgroundColor: 'hsla(222, 25%, 12%, 0.95)',
+      color: 'hsl(222, 15%, 95%)',
+      padding: '12px 24px',
       borderRadius: '8px',
       fontFamily: "'Outfit', sans-serif",
       fontSize: '14px',
       fontWeight: '500',
-      boxShadow: '0 10px 25px hsla(0, 0%, 0%, 0.3)',
-      border: '1px solid hsla(222, 20%, 25%, 0.5)',
-      zIndex: '999999',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
+      borderLeft: '4px solid hsl(258, 65%, 60%)',
+      borderTop: '1px solid hsla(222, 20%, 30%, 0.3)',
+      borderRight: '1px solid hsla(222, 20%, 30%, 0.3)',
+      borderBottom: '1px solid hsla(222, 20%, 30%, 0.3)',
+      backdropFilter: 'blur(10px)',
+      zIndex: '2147483647',
       opacity: '0',
-      transform: 'translateY(10px)',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      transform: 'translateX(30px)',
+      transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
     });
 
     document.body.appendChild(toast);
@@ -462,11 +466,11 @@
     // Trigger transition Reflow
     toast.offsetHeight;
 
-    // Animate In
+    // Animate In (slide left & fade in)
     toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
+    toast.style.transform = 'translateX(0)';
 
-    // Animate Out & Destroy
+    // Animate Out & Destroy (slide up & fade out)
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(-10px)';
