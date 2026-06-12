@@ -6,7 +6,7 @@ This repository contains a collection of Chrome extensions, each developed in it
 
 All extensions are located in individual subdirectories within this workspace.
 
-- (Extensions will be listed here as they are created)
+- [Fix Paste](file:///c:/Users/the1b/OneDrive/Desktop/chrome-extensions/fix-paste) (v1.0.0): Extract clean, structured markdown, plain text, or JSON content from any webpage, removing ads, navigation menus, and footers.
 
 ## General Setup Instructions
 
