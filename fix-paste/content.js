@@ -157,7 +157,7 @@
   function cleanContainer(element) {
     const selectorsToRemove = [
       'script', 'style', 'noscript', 'iframe', 'svg',
-      'nav', 'footer', 'header', 'aside',
+      'nav', 'footer', 'aside',
       '.ads', '#ads', '.social', '.comments', '.sidebar', '.menu',
       '[aria-hidden="true"]', '[style*="display: none"]'
     ];

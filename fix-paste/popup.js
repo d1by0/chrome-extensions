@@ -183,135 +183,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const content = await getExtractedContent();
-      const printWindow = window.open('', '_blank');
       
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${content.title}</title>
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-          <style>
-            body {
-              font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-              line-height: 1.6;
-              color: hsl(222, 25%, 15%);
-              max-width: 800px;
-              margin: 40px auto;
-              padding: 0 24px;
-              background-color: #fff;
-            }
-            h1 {
-              font-size: 2.2rem;
-              font-weight: 600;
-              margin-bottom: 8px;
-              color: hsl(222, 25%, 10%);
-              letter-spacing: -0.025em;
-              line-height: 1.25;
-            }
-            .meta {
-              font-size: 0.9rem;
-              color: hsl(222, 10%, 45%);
-              margin-bottom: 24px;
-            }
-            .meta a {
-              color: hsl(258, 65%, 50%);
-              text-decoration: none;
-            }
-            hr {
-              border: 0;
-              border-top: 1px solid hsl(222, 20%, 90%);
-              margin-bottom: 30px;
-            }
-            p {
-              margin-bottom: 20px;
-              font-size: 1.05rem;
-              color: hsl(222, 20%, 20%);
-            }
-            h2 {
-              font-size: 1.6rem;
-              font-weight: 600;
-              margin-top: 36px;
-              margin-bottom: 14px;
-              color: hsl(222, 25%, 12%);
-              border-bottom: 1px solid hsl(222, 20%, 95%);
-              padding-bottom: 6px;
-            }
-            h3 {
-              font-size: 1.25rem;
-              font-weight: 500;
-              margin-top: 24px;
-              margin-bottom: 10px;
-              color: hsl(222, 25%, 15%);
-            }
-            ul, ol {
-              margin-bottom: 20px;
-              padding-left: 24px;
-            }
-            li {
-              margin-bottom: 8px;
-              color: hsl(222, 20%, 20%);
-            }
-            img {
-              max-width: 100%;
-              height: auto;
-              display: block;
-              margin: 24px auto;
-              border-radius: 8px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 28px 0;
-              font-size: 0.95rem;
-            }
-            th, td {
-              border: 1px solid hsl(222, 20%, 88%);
-              padding: 12px 14px;
-              text-align: left;
-            }
-            th {
-              background-color: hsl(222, 20%, 97%);
-              font-weight: 600;
-              color: hsl(222, 25%, 15%);
-            }
-            @media print {
-              body {
-                margin: 20px;
-                color: #000;
-              }
-              h1, h2, h3 {
-                page-break-after: avoid;
-              }
-              tr {
-                page-break-inside: avoid;
-              }
-              img {
-                page-break-inside: avoid;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>${content.title}</h1>
-          <div class="meta">Source: <a href="${content.url}">${content.url}</a></div>
-          <hr>
-          ${content.html}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            };
-          </script>
-        </body>
-        </html>
+      const element = document.createElement('div');
+      element.innerHTML = `
+        <div style="font-family: 'Outfit', sans-serif; color: #1e293b; padding: 20px; line-height: 1.6;">
+          <h1 style="font-size: 26px; font-weight: 600; margin-bottom: 6px; color: #0f172a; line-height: 1.25;">${content.title}</h1>
+          <div style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Source: <a href="${content.url}" style="color: #4f46e5; text-decoration: none;">${content.url}</a></div>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 24px;">
+          <div class="pdf-body-content">
+            ${content.html}
+          </div>
+        </div>
       `;
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .pdf-body-content p { font-size: 14px; margin-bottom: 16px; color: #334155; }
+        .pdf-body-content h2 { font-size: 18px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+        .pdf-body-content h3 { font-size: 15px; font-weight: 500; margin-top: 20px; margin-bottom: 8px; color: #1e293b; }
+        .pdf-body-content ul, .pdf-body-content ol { margin-bottom: 16px; padding-left: 20px; }
+        .pdf-body-content li { font-size: 14px; margin-bottom: 6px; color: #334155; }
+        .pdf-body-content img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 6px; }
+        .pdf-body-content table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 13px; }
+        .pdf-body-content th, .pdf-body-content td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; }
+        .pdf-body-content th { background-color: #f8fafc; font-weight: 600; color: #0f172a; }
+      `;
+      element.appendChild(style);
+      
+      const titleCleaned = (content.title || 'page')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const filename = `${titleCleaned}.pdf`;
+
+      const opt = {
+        margin:       0.75,
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      
     } catch (err) {
       showError(err.message);
     } finally {
