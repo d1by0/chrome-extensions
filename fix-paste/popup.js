@@ -82,9 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCopy.addEventListener('click', async () => {
     if (!extractedContent) return;
 
-    const textToCopy = getFormattedText();
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      const data = {};
+      if (selectedFormat === 'text') {
+        data['text/plain'] = new Blob([extractedContent.text], { type: 'text/plain' });
+        if (extractedContent.html) {
+          data['text/html'] = new Blob([extractedContent.html], { type: 'text/html' });
+        }
+      } else {
+        const textToCopy = getFormattedText();
+        data['text/plain'] = new Blob([textToCopy], { type: 'text/plain' });
+      }
+
+      const item = new ClipboardItem(data);
+      await navigator.clipboard.write([item]);
+
       const originalText = btnCopy.textContent;
       btnCopy.textContent = 'Copied!';
       btnCopy.disabled = true;

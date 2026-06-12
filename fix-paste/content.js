@@ -21,10 +21,17 @@
       try {
         const options = request.options || {};
         const extractedData = extractContent(options);
-        const format = options.format || 'markdown';
-        const textToCopy = format === 'markdown' ? extractedData.markdown : (format === 'json' ? extractedData.json : extractedData.text);
+        const format = options.format || 'text';
+        
+        let promise;
+        if (format === 'text') {
+          promise = writeToClipboard(extractedData.text, extractedData.html);
+        } else {
+          const textToCopy = format === 'markdown' ? extractedData.markdown : extractedData.json;
+          promise = writeToClipboard(textToCopy, null);
+        }
 
-        navigator.clipboard.writeText(textToCopy).then(() => {
+        promise.then(() => {
           showToastFeedback("Clean content copied!");
           sendResponse({ success: true });
         }).catch(err => {
@@ -60,6 +67,7 @@
       url: window.location.href,
       markdown: convertToMarkdown(blocks, options),
       text: convertToPlainText(blocks),
+      html: getCleanHTML(clonedContainer, options),
       json: JSON.stringify(blocks, null, 2)
     };
   }
@@ -536,5 +544,77 @@
       toast.style.transform = 'translateY(-10px)';
       toast.addEventListener('transitionend', () => toast.remove());
     }, 2500);
+  }
+
+  /**
+   * Sanitizes DOM tree to extract clean, minimal, semantic HTML tags suitable for copy-pasting
+   */
+  function getCleanHTML(element, options) {
+    const clone = element.cloneNode(true);
+    
+    function cleanNode(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName.toLowerCase();
+        
+        // Whitelist of clean formatting tags to preserve
+        const allowedTags = [
+          'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li',
+          'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'img',
+          'strong', 'b', 'em', 'i', 'span', 'br'
+        ];
+        
+        if (!allowedTags.includes(tag)) {
+          // Unwrap tag: lift children up and remove parent wrapper
+          const parent = node.parentNode;
+          if (parent) {
+            while (node.firstChild) {
+              parent.insertBefore(node.firstChild, node);
+            }
+            node.remove();
+          }
+          return;
+        }
+        
+        // Clean all attributes except standard essentials
+        const attrs = Array.from(node.attributes);
+        attrs.forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (tag === 'a' && name === 'href') {
+            if (!options.preserveLinks) {
+              node.removeAttribute('href');
+            }
+          } else if (tag === 'img' && (name === 'src' || name === 'alt')) {
+            if (!options.includeImages && name === 'src') {
+              node.remove();
+            }
+          } else {
+            // Strip classes, ids, styles, datasets, custom attrs
+            node.removeAttribute(attr.name);
+          }
+        });
+      }
+      
+      // Clean children recursively
+      Array.from(node.childNodes).forEach(cleanNode);
+    }
+    
+    cleanNode(clone);
+    return clone.innerHTML;
+  }
+
+  /**
+   * Writes text and HTML streams to the system clipboard simultaneously using ClipboardItem
+   */
+  function writeToClipboard(plainText, htmlText) {
+    const data = {
+      'text/plain': new Blob([plainText], { type: 'text/plain' })
+    };
+    
+    if (htmlText) {
+      data['text/html'] = new Blob([htmlText], { type: 'text/html' });
+    }
+    
+    const item = new ClipboardItem(data);
+    return navigator.clipboard.write([item]);
   }
 })();
