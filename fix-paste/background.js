@@ -24,14 +24,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         files: ['content.js']
       });
 
-      // Send instruction to content script to perform extraction and write to clipboard
-      chrome.tabs.sendMessage(tab.id, {
-        action: 'extractAndCopy',
-        options: {
-          includeImages: true,
-          preserveLinks: true,
-          format: 'text' // Default to Text for context menu copy
-        }
+      // Fetch user preferences from local storage
+      chrome.storage.local.get({
+        format: 'text',
+        includeImages: true,
+        preserveLinks: true
+      }, (items) => {
+        // Send instruction to content script to perform extraction and write to clipboard
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'extractAndCopy',
+          options: {
+            includeImages: items.includeImages,
+            preserveLinks: items.preserveLinks,
+            format: items.format
+          }
+        });
       });
     } catch (err) {
       console.error('Failed to run Fix Paste context menu action:', err);

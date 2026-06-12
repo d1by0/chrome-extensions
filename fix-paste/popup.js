@@ -3,6 +3,7 @@
  * 
  * Manages user configurations, injects content scripts, receives data,
  * and facilitates copying/downloading of cleaned outputs.
+ * Saves user selections and options to storage.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,6 +21,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const optImages = document.getElementById('opt-images');
   const optLinks = document.getElementById('opt-links');
 
+  // Load preferences from local storage
+  chrome.storage.local.get({
+    format: 'text',
+    includeImages: true,
+    preserveLinks: true
+  }, (items) => {
+    selectedFormat = items.format;
+    optImages.checked = items.includeImages;
+    optLinks.checked = items.preserveLinks;
+
+    // Set active class on the stored format button
+    formatButtons.forEach(btn => {
+      if (btn.getAttribute('data-format') === selectedFormat) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    updateStatusDisplay();
+  });
+
   // Format selection interaction
   formatButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -27,7 +49,19 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       selectedFormat = btn.getAttribute('data-format');
       updateStatusDisplay();
+      
+      // Save setting to storage
+      chrome.storage.local.set({ format: selectedFormat });
     });
+  });
+
+  // Option change interactions
+  optImages.addEventListener('change', () => {
+    chrome.storage.local.set({ includeImages: optImages.checked });
+  });
+
+  optLinks.addEventListener('change', () => {
+    chrome.storage.local.set({ preserveLinks: optLinks.checked });
   });
 
   // Extract Content action
