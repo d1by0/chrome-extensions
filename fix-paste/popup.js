@@ -618,14 +618,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Telemetry / Analytics Manager ---
-  const TELEMETRY_TOKEN = '6d0ee0ebb1a11bbea59139fd285990b0';
+  // Safely read token from gitignored config.js to resolve GitGuardian security incidents
+  const TELEMETRY_TOKEN = typeof CONFIG !== 'undefined' ? CONFIG.MIXPANEL_TOKEN : '';
 
   if (typeof mixpanel !== 'undefined' && TELEMETRY_TOKEN) {
     try {
       mixpanel.init(TELEMETRY_TOKEN, {
         autocapture: true,
         persistence: 'localStorage',
-        opt_out_tracking_by_default: false
+        opt_out_tracking_by_default: false,
+        api_method: 'GET' // Force GET request to bypass chrome-extension CORS preflight limitations
       });
     } catch (e) {
       console.warn('Mixpanel initialization failed:', e);
