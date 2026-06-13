@@ -17,11 +17,35 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('print-meta').innerHTML = `Source: <a href="${content.url}">${content.url}</a>`;
       document.getElementById('print-content').innerHTML = content.html;
       
-      // Wait for layout rendering and trigger print sequence
-      setTimeout(() => {
-        window.print();
-        window.close();
-      }, 500);
+      // Find all images in print content
+      const images = Array.from(document.querySelectorAll('#print-content img'));
+      
+      if (images.length === 0) {
+        // No images, print immediately after a small rendering delay
+        setTimeout(() => {
+          window.print();
+          window.close();
+        }, 300);
+      } else {
+        // Wait for all images to complete loading or fail
+        const loadPromises = images.map(img => {
+          if (img.complete) {
+            return Promise.resolve();
+          }
+          return new Promise(resolve => {
+            img.addEventListener('load', resolve);
+            img.addEventListener('error', resolve); // Resolve on error so we don't hang
+          });
+        });
+        
+        Promise.all(loadPromises).then(() => {
+          // Wait for rendering engine to paint the decoded images
+          setTimeout(() => {
+            window.print();
+            window.close();
+          }, 800);
+        });
+      }
     }
   });
 });
