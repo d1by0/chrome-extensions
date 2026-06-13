@@ -1,0 +1,1 @@
+Place your logo image files (e.g. icon16.png, icon48.png, icon128.png) in this directory.

@@ -639,7 +639,7 @@
       fontSize: '14px',
       fontWeight: '500',
       boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-      borderLeft: '4px solid hsl(258, 65%, 60%)',
+      borderLeft: '4px solid #0035FE',
       borderTop: '1px solid hsla(222, 20%, 30%, 0.3)',
       borderRight: '1px solid hsla(222, 20%, 30%, 0.3)',
       borderBottom: '1px solid hsla(222, 20%, 30%, 0.3)',
@@ -877,8 +877,8 @@
       originalOutline = hoveredElement.style.outline;
       originalBg = hoveredElement.style.backgroundColor;
 
-      hoveredElement.style.outline = '2px dashed hsl(258, 65%, 60%)';
-      hoveredElement.style.backgroundColor = 'hsla(258, 65%, 60%, 0.08)';
+      hoveredElement.style.outline = '2px dashed #0035FE';
+      hoveredElement.style.backgroundColor = 'rgba(0, 53, 254, 0.08)';
     };
 
     const handleMouseOut = (e) => {
