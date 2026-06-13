@@ -16,7 +16,7 @@
   --btn-secondary-bg: #f1f5f9; /* Soft gray buttons */
   --btn-secondary-hover: #e2e8f0;
   
-  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
