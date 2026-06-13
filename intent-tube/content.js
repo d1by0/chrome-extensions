@@ -386,6 +386,9 @@ function ensureUIElements() {
       currentVideoUrl = location.href;
       renderNotesList();
       resetTimerForNewVideo();
+    } else {
+      // Periodically update the video title link in case it was loading during first render
+      updateSidebarVideoTitle();
     }
     
     injectTimerBadge();
@@ -394,6 +397,38 @@ function ensureUIElements() {
     if (sidebar) sidebar.remove();
     removeTimerBadge();
     document.body.classList.remove('it-sidebar-open');
+  }
+}
+
+function updateSidebarVideoTitle() {
+  const videoLinkEl = document.querySelector('.it-current-video-link');
+  if (videoLinkEl) {
+    const currentBaseUrl = location.href.split('&')[0];
+    const videoTitleEl = document.querySelector('ytd-watch-metadata h1 yt-formatted-string') || document.querySelector('h1.title');
+    const videoTitle = videoTitleEl ? videoTitleEl.textContent.trim() : '';
+    
+    // Fallback to document title if DOM element not ready, but exclude generic "YouTube"
+    let displayTitle = videoTitle;
+    if (!displayTitle && document.title && document.title !== 'YouTube') {
+      displayTitle = document.title;
+    }
+    if (!displayTitle) {
+      displayTitle = 'Loading video title...';
+    }
+
+    if (videoLinkEl.textContent !== displayTitle || videoLinkEl.href !== currentBaseUrl) {
+      videoLinkEl.href = currentBaseUrl;
+      videoLinkEl.textContent = displayTitle;
+      videoLinkEl.title = `Watch: ${displayTitle} (${currentBaseUrl})`;
+      
+      // Also update in notes summary if it exists
+      const summaryLink = document.querySelector('.it-notes-summary-box a');
+      if (summaryLink) {
+        summaryLink.href = currentBaseUrl;
+        summaryLink.textContent = displayTitle;
+        summaryLink.title = currentBaseUrl;
+      }
+    }
   }
 }
 
@@ -560,14 +595,7 @@ function renderNotesList() {
   const currentVideoNotes = settings.sessionNotes.filter(n => n.videoUrl === currentBaseUrl);
 
   // Update video info link in sidebar header
-  const videoLinkEl = document.querySelector('.it-current-video-link');
-  if (videoLinkEl) {
-    const videoTitleEl = document.querySelector('ytd-watch-metadata h1 yt-formatted-string') || document.querySelector('h1.title');
-    const videoTitle = videoTitleEl ? videoTitleEl.textContent.trim() : 'YouTube Video';
-    videoLinkEl.href = currentBaseUrl;
-    videoLinkEl.textContent = videoTitle;
-    videoLinkEl.title = `Watch: ${videoTitle} (${currentBaseUrl})`;
-  }
+  updateSidebarVideoTitle();
 
   if (currentVideoNotes.length === 0) {
     list.innerHTML = `<li style="text-align: center; color: var(--yt-spec-text-secondary, #aaa); font-size: 12px; margin-top: 24px;">No notes for this video yet.</li>`;
