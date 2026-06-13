@@ -127,6 +127,7 @@ function applySettings() {
   if (!settings.extensionEnabled) {
     document.body.classList.remove('it-theater-active');
     document.body.classList.remove('it-gate-active');
+    document.body.classList.remove('it-sidebar-open');
     
     const placeholder = document.querySelector('.it-home-placeholder');
     if (placeholder) placeholder.remove();
@@ -392,6 +393,7 @@ function ensureUIElements() {
     if (toggleBtn) toggleBtn.remove();
     if (sidebar) sidebar.remove();
     removeTimerBadge();
+    document.body.classList.remove('it-sidebar-open');
   }
 }
 
@@ -437,7 +439,10 @@ function injectNotesUI() {
       const deltaY = Math.abs(e.clientY - startY);
       if (deltaX < 5 && deltaY < 5) {
         const sb = document.querySelector('.it-notes-sidebar');
-        if (sb) sb.classList.toggle('open');
+        if (sb) {
+          sb.classList.toggle('open');
+          document.body.classList.toggle('it-sidebar-open', sb.classList.contains('open'));
+        }
       }
     }
   });
@@ -468,6 +473,7 @@ function injectNotesUI() {
 
   sidebar.querySelector('.it-notes-close-btn').addEventListener('click', () => {
     sidebar.classList.remove('open');
+    document.body.classList.remove('it-sidebar-open');
   });
 
   const textarea = sidebar.querySelector('.it-notes-input');
