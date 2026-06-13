@@ -31,6 +31,22 @@ document.addEventListener('DOMContentLoaded', () => {
           }, 400);
         }, 300);
       } else {
+        // Set a global fallback timeout of 2.5 seconds to ensure we NEVER hang
+        let printTriggered = false;
+        const triggerPrint = () => {
+          if (printTriggered) return;
+          printTriggered = true;
+          const loader = document.getElementById('print-loader');
+          if (loader) loader.classList.add('hidden');
+          
+          setTimeout(() => {
+            window.print();
+            window.close();
+          }, 600);
+        };
+
+        const globalTimeout = setTimeout(triggerPrint, 2500);
+
         // Wait for all images to complete loading or fail
         const loadPromises = images.map(img => {
           if (img.complete) {
@@ -43,14 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         Promise.all(loadPromises).then(() => {
-          // Hide loader, wait for transition, and print
-          const loader = document.getElementById('print-loader');
-          if (loader) loader.classList.add('hidden');
-          
-          setTimeout(() => {
-            window.print();
-            window.close();
-          }, 800); // 800ms gives time for fading animation & paint decoding
+          clearTimeout(globalTimeout);
+          triggerPrint();
         });
       }
     }
