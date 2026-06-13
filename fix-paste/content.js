@@ -28,16 +28,22 @@
             textToCopy = extractedData.markdown;
           } else if (options.format === 'json') {
             textToCopy = extractedData.json;
+          } else if (options.format === 'html') {
+            textToCopy = extractedData.html;
           }
           return writeToClipboard(textToCopy, extractedData.html)
             .then(() => {
               showToastFeedback("Clean content copied!");
-              sendResponse({ success: true });
+              sendResponse({ success: true, data: extractedData });
             });
         })
         .catch(error => {
           sendResponse({ success: false, error: error.message });
         });
+      return true;
+    } else if (request.action === 'startPicker') {
+      startElementPicker();
+      sendResponse({ success: true });
       return true;
     } else if (request.action === 'showToast') {
       showToastFeedback(request.message || "Clean content copied!");
@@ -662,22 +668,53 @@
   }
 
   /**
-   * Helper to convert image links inside a container to self-contained Base64 Data URLs
+   * Helper to convert image links inside a container to self-contained Base64 Data URLs (optimized with scaling & compression)
    */
   async function convertImagesToBase64(container) {
-    const images = Array.from(container.querySelectorAll('img'));
+    const images = Array.from(container.querySelectorAll('img')).slice(0, 15); // Limit to first 15 images
     for (const img of images) {
       const src = img.getAttribute('src');
       if (src && !src.startsWith('data:')) {
         const absoluteSrc = makeAbsoluteURL(src);
         try {
-          const res = await fetch(absoluteSrc);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+
+          const res = await fetch(absoluteSrc, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
           const blob = await res.blob();
           const dataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+            const imgEl = new Image();
+            imgEl.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              let width = imgEl.naturalWidth || imgEl.width || 300;
+              let height = imgEl.naturalHeight || imgEl.height || 200;
+
+              const maxDim = 800;
+              if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                  height = Math.round((height * maxDim) / width);
+                  width = maxDim;
+                } else {
+                  width = Math.round((width * maxDim) / height);
+                  height = maxDim;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(imgEl, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.7)); // JPEG 0.7 compression
+            };
+            imgEl.onerror = () => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            };
+            imgEl.src = URL.createObjectURL(blob);
           });
           img.setAttribute('src', dataUrl);
         } catch (e) {
@@ -780,4 +817,150 @@
       return url;
     }
   }
+
+  // Copy/Paste Restrictions Bypass
+  function bypassCopyPasteRestrictions() {
+    const events = ['copy', 'cut', 'paste', 'contextmenu', 'selectstart', 'dragstart'];
+    events.forEach(eventName => {
+      document.addEventListener(eventName, (e) => {
+        e.stopPropagation();
+      }, true); // Capture phase to preempt page handlers
+    });
+  }
+
+  // Element Picker implementation
+  let pickerActive = false;
+  let hoveredElement = null;
+  let originalOutline = '';
+  let originalBg = '';
+
+  function startElementPicker() {
+    if (pickerActive) return;
+    pickerActive = true;
+
+    const infoBar = document.createElement('div');
+    infoBar.id = 'fix-paste-picker-info';
+    infoBar.textContent = 'Fix Paste: Hover & click to extract content. ESC to cancel.';
+    Object.assign(infoBar.style, {
+      position: 'fixed',
+      top: '12px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: 'hsla(222, 25%, 12%, 0.95)',
+      color: 'hsl(222, 15%, 95%)',
+      padding: '10px 20px',
+      borderRadius: '30px',
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: '13px',
+      fontWeight: '500',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
+      border: '1px solid hsla(222, 20%, 30%, 0.3)',
+      zIndex: '2147483647',
+      pointerEvents: 'none',
+      transition: 'all 0.3s ease'
+    });
+    document.body.appendChild(infoBar);
+
+    const handleMouseOver = (e) => {
+      if (!pickerActive) return;
+      e.stopPropagation();
+      if (e.target === infoBar) return;
+
+      if (hoveredElement) {
+        hoveredElement.style.outline = originalOutline;
+        hoveredElement.style.backgroundColor = originalBg;
+      }
+
+      hoveredElement = e.target;
+      originalOutline = hoveredElement.style.outline;
+      originalBg = hoveredElement.style.backgroundColor;
+
+      hoveredElement.style.outline = '2px dashed hsl(258, 65%, 60%)';
+      hoveredElement.style.backgroundColor = 'hsla(258, 65%, 60%, 0.08)';
+    };
+
+    const handleMouseOut = (e) => {
+      if (hoveredElement && e.target === hoveredElement) {
+        hoveredElement.style.outline = originalOutline;
+        hoveredElement.style.backgroundColor = originalBg;
+        hoveredElement = null;
+      }
+    };
+
+    const handleClick = async (e) => {
+      if (!pickerActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const selectedContainer = hoveredElement || e.target;
+      stopElementPicker();
+
+      try {
+        chrome.storage.local.get({
+          format: 'text',
+          includeImages: true,
+          preserveLinks: true
+        }, async (items) => {
+          const clonedContainer = selectedContainer.cloneNode(true);
+          cleanContainer(clonedContainer);
+          const blocks = extractBlocks(clonedContainer, items);
+          const html = await getCleanHTML(clonedContainer, items);
+
+          const extractedData = {
+            title: document.title || 'Untitled Page',
+            url: window.location.href,
+            markdown: convertToMarkdown(blocks, items),
+            text: convertToPlainText(blocks, items),
+            html: html,
+            json: JSON.stringify(blocks, null, 2)
+          };
+
+          let textToCopy = extractedData.text;
+          if (items.format === 'markdown') {
+            textToCopy = extractedData.markdown;
+          } else if (items.format === 'json') {
+            textToCopy = extractedData.json;
+          } else if (items.format === 'html') {
+            textToCopy = extractedData.html;
+          }
+
+          await writeToClipboard(textToCopy, html);
+          showToastFeedback("Selected content copied!");
+          chrome.runtime.sendMessage({ action: 'saveHistory', data: extractedData });
+        });
+      } catch (err) {
+        showToastFeedback("Extraction failed: " + err.message);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        stopElementPicker();
+        showToastFeedback("Selection cancelled");
+      }
+    };
+
+    function stopElementPicker() {
+      pickerActive = false;
+      if (hoveredElement) {
+        hoveredElement.style.outline = originalOutline;
+        hoveredElement.style.backgroundColor = originalBg;
+        hoveredElement = null;
+      }
+      infoBar.remove();
+
+      document.removeEventListener('mouseover', handleMouseOver, true);
+      document.removeEventListener('mouseout', handleMouseOut, true);
+      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+    }
+
+    document.addEventListener('mouseover', handleMouseOver, true);
+    document.addEventListener('mouseout', handleMouseOut, true);
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+  }
+
+  // Automatically bypass copy protection on page load/injection
+  bypassCopyPasteRestrictions();
 })();

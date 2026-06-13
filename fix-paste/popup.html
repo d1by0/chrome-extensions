@@ -6,42 +6,121 @@
   <title>Fix Paste</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <header class="app-header">
-      <h1 class="app-title">Fix Paste</h1>
-      <p class="app-subtitle">Content Extraction Engine</p>
+      <div class="brand">
+        <div class="brand-logo">✨</div>
+        <div>
+          <h1 class="app-title">Fix Paste</h1>
+          <p class="app-subtitle">Premium Extraction Engine</p>
+        </div>
+      </div>
     </header>
 
+    <!-- Tab Navigation Bar -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="tab-extract">Extract</button>
+      <button class="tab-btn" data-tab="tab-history">History 🕒</button>
+      <button class="tab-btn" data-tab="tab-batch">Batch 📚</button>
+    </nav>
+
     <main class="app-content">
-      <div class="options-panel">
-        <div class="option-row">
-          <label for="opt-images" class="option-label">Include images</label>
-          <input type="checkbox" id="opt-images" checked>
+      <!-- Tab 1: Extract Content Panel -->
+      <section id="tab-extract" class="tab-panel active">
+        <!-- Format Selection -->
+        <div class="panel-section">
+          <label class="section-label">Target Format</label>
+          <div class="format-toggle">
+            <button class="format-pill active" data-format="text">Text</button>
+            <button class="format-pill" data-format="markdown">MD</button>
+            <button class="format-pill" data-format="html">HTML</button>
+            <button class="format-pill" data-format="json">JSON</button>
+          </div>
         </div>
-        <div class="option-row">
-          <label for="opt-links" class="option-label">Preserve links</label>
-          <input type="checkbox" id="opt-links" checked>
+
+        <!-- Extraction Options -->
+        <div class="options-panel">
+          <div class="option-row">
+            <label for="opt-images" class="option-label">Include images</label>
+            <input type="checkbox" id="opt-images" checked>
+          </div>
+          <div class="option-row">
+            <label for="opt-links" class="option-label">Preserve links</label>
+            <input type="checkbox" id="opt-links" checked>
+          </div>
         </div>
-      </div>
 
-      <button id="btn-copy" class="btn-primary">Copy to Clipboard</button>
+        <!-- Action Buttons -->
+        <div class="button-stack">
+          <button id="btn-copy" class="btn-primary">Copy Current Page</button>
+          <button id="btn-picker" class="btn-picker">🎯 Select Element to Copy</button>
+        </div>
 
-      <div class="action-grid">
-        <button id="btn-download" class="btn-secondary">Download Text File</button>
-        <button id="btn-pdf" class="btn-secondary">Save as PDF</button>
-      </div>
+        <div class="action-grid">
+          <button id="btn-download" class="btn-secondary">Download Text</button>
+          <button id="btn-pdf" class="btn-secondary">Save as PDF</button>
+        </div>
+      </section>
 
+      <!-- Tab 2: History Panel -->
+      <section id="tab-history" class="tab-panel">
+        <div class="history-controls">
+          <div class="search-wrapper">
+            <input type="text" id="history-search" placeholder="Search history..." class="search-input">
+            <button id="btn-clear-search" class="clear-search-btn" style="display: none;">×</button>
+          </div>
+          <div class="expiry-selector">
+            <label for="history-expiry" class="expiry-label">Keep for:</label>
+            <select id="history-expiry" class="expiry-select">
+              <option value="15">15 mins</option>
+              <option value="30">30 mins</option>
+              <option value="60" selected>1 hour</option>
+              <option value="1440">1 day</option>
+              <option value="0">Session Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="history-list" class="history-list">
+          <!-- Dynamically populated history cards -->
+          <div class="no-history">No clips saved yet.</div>
+        </div>
+
+        <div class="history-footer">
+          <button id="btn-clear-history" class="btn-danger">Clear All History</button>
+        </div>
+      </section>
+
+      <!-- Tab 3: Batch Mode Panel -->
+      <section id="tab-batch" class="tab-panel">
+        <p class="panel-desc">Select open tabs in the current window to scrape and compile into a single file.</p>
+        
+        <div class="batch-options">
+          <button id="btn-batch-select-all" class="btn-text">Select All</button>
+          <button id="btn-batch-select-none" class="btn-text">Deselect All</button>
+        </div>
+
+        <div id="batch-tabs-list" class="tabs-list">
+          <!-- Dynamically populated with active tabs -->
+        </div>
+
+        <div class="batch-actions">
+          <button id="btn-batch-download" class="btn-primary" disabled>Compile & Download (.md)</button>
+        </div>
+      </section>
+
+      <!-- Common Status/Footer -->
       <div class="status-summary">
         <span id="status-text">Ready to extract page content.</span>
       </div>
     </main>
 
     <footer class="app-footer">
-      <span class="version-text">v1.1.0</span>
+      <span class="version-text">v1.2.0 • Premium</span>
     </footer>
   </div>
   <script src="html2pdf.bundle.min.js"></script>

@@ -8,12 +8,22 @@
     "scripting",
     "clipboardWrite",
     "contextMenus",
-    "storage"
+    "storage",
+    "alarms",
+    "tabs"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html"
+  },
+  "commands": {
+    "quick-extract": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Quick copy clean content of the current tab"
+    }
   }
 }
