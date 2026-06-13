@@ -63,3 +63,11 @@ I wanted a way to grab *exactly* what I need - whether it's raw text, a clean Ma
 - **content.js**: Injected DOM scraper hosting clean cleaners, table parsers, custom image compressors, right-click bypasses, and the interactive element picker.
 - **popup.html / css / js**: Unified tab controller for format selection, settings management, search filters, and batch processing.
 - **print.html / css / js**: PDF document preview window supporting custom load states and rendering.
+
+---
+
+## Credits & Acknowledgements
+- PDF generation is powered by the [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) library.
+- User analytics tracked via [Mixpanel](https://mixpanel.com/).
+- Interface typography uses the [Geist](https://vercel.com/font) typeface family from Vercel.
+- Vector icons provided by [Boxicons](https://boxicons.com/).
