@@ -672,13 +672,13 @@
    */
   async function convertImagesToBase64(container) {
     const images = Array.from(container.querySelectorAll('img')).slice(0, 15); // Limit to first 15 images
-    for (const img of images) {
+    const promises = images.map(async (img) => {
       const src = img.getAttribute('src');
       if (src && !src.startsWith('data:')) {
         const absoluteSrc = makeAbsoluteURL(src);
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+          const timeoutId = setTimeout(() => controller.abort(), 2000); // 2-second timeout per image
 
           const res = await fetch(absoluteSrc, { signal: controller.signal });
           clearTimeout(timeoutId);
@@ -722,7 +722,9 @@
           img.setAttribute('src', absoluteSrc);
         }
       }
-    }
+    });
+
+    await Promise.all(promises);
   }
 
   /**
