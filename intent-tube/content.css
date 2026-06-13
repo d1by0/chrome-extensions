@@ -7,6 +7,14 @@ body.it-gate-active ytd-browse[page-subtype="home"] #primary {
   display: none !important;
 }
 
+/* Fix dropdown clipping by forcing parent overflow visibility */
+body.it-gate-active ytd-browse[page-subtype="home"],
+body.it-gate-active ytd-browse[page-subtype="home"] ytd-two-column-browse-results-renderer,
+body.it-gate-active ytd-browse[page-subtype="home"] #contents {
+  overflow: visible !important;
+  display: block !important;
+}
+
 /* Elegant, Native-looking Placeholder on Home Page */
 .it-home-placeholder {
   display: flex;

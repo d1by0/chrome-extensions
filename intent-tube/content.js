@@ -269,6 +269,13 @@ function injectIntentPlaceholder() {
       });
   });
 
+  // Re-display suggestions when focusing back in
+  input.addEventListener('focus', () => {
+    if (input.value.trim() && currentSuggestions.length > 0) {
+      dropdown.style.display = 'block';
+    }
+  });
+
   // Keyboard navigation
   input.addEventListener('keydown', (e) => {
     const items = dropdown.querySelectorAll('.it-autocomplete-item');
