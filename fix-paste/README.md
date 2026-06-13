@@ -11,11 +11,11 @@ Fix Paste is a premium, lightweight Chrome extension designed to extract, clean,
 
 ## Why I Built This
 
-I got tired of the outdated, clunky methods of copy-pasting text from the web. Whenever I tried to copy a simple article or documentation snippet, I’d end up with annoying unstructured content, headers mixed in with text, ads popping up, or—worse—tables completely losing their formatting. Getting misplaced values, messed-up columns, and broken grids every time you paste something into your editor or notes is a massive flow-killer.
+I got tired of the outdated, clunky methods of copy-pasting text from the web. Whenever I tried to copy a simple article or documentation snippet, I’d end up with annoying unstructured content, headers mixed in with text, ads popping up, or - worse - tables completely losing their formatting. Getting misplaced values, messed-up columns, and broken grids every time you paste something into your editor or notes is a massive flow-killer.
 
 On top of that, many websites go out of their way to disable right-click context menus, selections, or drag-and-drop events just to stop you from copying their text. 
 
-I wanted a way to grab *exactly* what I need—whether it's raw text, a clean Markdown table, or a specific element—with high fidelity and zero clutter. Fix Paste was born to bypass those limitations and purify content instantly.
+I wanted a way to grab *exactly* what I need - whether it's raw text, a clean Markdown table, or a specific element - with high fidelity and zero clutter. Fix Paste was born to bypass those limitations and purify content instantly.
 
 ---
 

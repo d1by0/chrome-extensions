@@ -11,7 +11,7 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 
 ## Why I Built This
 
-I’ve always been someone who binging on YouTube. Whenever something is on my mind or I need to figure out how to build something, I immediately go to YouTube creators I admire. But lately, the experience has become incredibly frustrating—especially when the very first thing I see on a video is an annoying ad.
+I’ve always been someone who binges YouTube. Whenever something is on my mind or I need to figure out how to build something, I immediately go to YouTube creators I admire. But lately, the experience has been frustrating - especially when the very first thing I see on a video is an annoying ad.
 
 Initially, I thought about just coding another adblocker or installing a simple unhook extension. But as I sat on the idea, I realized the real problem goes way beyond ads. The actual enemy is the distraction engine itself: the home page recommendation feed, the related sidebar thumbnails, the infinite Shorts loop, and the endless comments section designed specifically to keep us scrolling.
 
