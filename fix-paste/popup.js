@@ -619,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Telemetry / Analytics Manager ---
   // To track live stats, enter your free Mixpanel Project Token below:
-  const TELEMETRY_TOKEN = ''; // e.g., 'your-mixpanel-token-here'
+  const TELEMETRY_TOKEN = '6d0ee0ebb1a11bbea59139fd285990b0';
 
   function trackEvent(eventName, properties = {}) {
     const telemetryCheckbox = document.getElementById('opt-telemetry');

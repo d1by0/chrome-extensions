@@ -836,6 +836,25 @@
   let originalOutline = '';
   let originalBg = '';
 
+  function getPickerTarget(target) {
+    if (!target) return null;
+    let el = target;
+    while (el) {
+      if (el.id === 'fix-paste-picker-info' || el.id === 'fix-paste-toast') return null;
+      const tag = el.tagName;
+      if (['HTML', 'BODY', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'HEADER', 'FOOTER', 'NAV'].includes(tag)) {
+        return null; // Don't select layout boundaries or script/style tags
+      }
+      if (['SVG', 'PATH', 'G', 'USE', 'RECT', 'CIRCLE'].includes(tag)) {
+        // Traverse up to find a container element outside of raw vector graphics
+        el = el.parentElement;
+        continue;
+      }
+      return el;
+    }
+    return null;
+  }
+
   function startElementPicker() {
     if (pickerActive) return;
     pickerActive = true;
@@ -866,19 +885,30 @@
     const handleMouseOver = (e) => {
       if (!pickerActive) return;
       e.stopPropagation();
-      if (e.target === infoBar) return;
 
-      if (hoveredElement) {
+      const target = getPickerTarget(e.target);
+      if (!target) {
+        if (hoveredElement) {
+          hoveredElement.style.outline = originalOutline;
+          hoveredElement.style.backgroundColor = originalBg;
+          hoveredElement = null;
+        }
+        return;
+      }
+
+      if (hoveredElement && hoveredElement !== target) {
         hoveredElement.style.outline = originalOutline;
         hoveredElement.style.backgroundColor = originalBg;
       }
 
-      hoveredElement = e.target;
-      originalOutline = hoveredElement.style.outline;
-      originalBg = hoveredElement.style.backgroundColor;
+      if (hoveredElement !== target) {
+        hoveredElement = target;
+        originalOutline = hoveredElement.style.outline;
+        originalBg = hoveredElement.style.backgroundColor;
 
-      hoveredElement.style.outline = '2px dashed #0035FE';
-      hoveredElement.style.backgroundColor = 'rgba(0, 53, 254, 0.08)';
+        hoveredElement.style.outline = '2px dashed #0035FE';
+        hoveredElement.style.backgroundColor = 'rgba(0, 53, 254, 0.08)';
+      }
     };
 
     const handleMouseOut = (e) => {
@@ -894,7 +924,9 @@
       e.preventDefault();
       e.stopPropagation();
 
-      const selectedContainer = hoveredElement || e.target;
+      const selectedContainer = getPickerTarget(e.target);
+      if (!selectedContainer) return;
+
       stopElementPicker();
 
       try {
