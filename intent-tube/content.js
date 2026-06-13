@@ -40,21 +40,19 @@ chrome.storage.onChanged.addListener((changes) => {
 function init() {
   applySettings();
   
-  // Track SPA navigation
+  // Track SPA navigation and periodically verify elements
   let lastUrl = location.href;
   setInterval(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       handlePageChange();
+    } else {
+      // Safe periodic check (no MutationObserver loops)
+      ensureUIElements();
+      handleIntentGate();
     }
   }, 1000);
 
-  // Monitor DOM insertions for player & containers
-  const observer = new MutationObserver(() => {
-    ensureUIElements();
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-  
   // Initial check
   ensureUIElements();
 }
@@ -110,9 +108,6 @@ function injectIntentPlaceholder() {
   const homeContainer = document.querySelector('ytd-browse[page-subtype="home"]');
   if (!homeContainer) return;
 
-  // Check again to prevent double injection
-  if (homeContainer.querySelector('.it-home-placeholder')) return;
-
   const placeholder = document.createElement('div');
   placeholder.className = 'it-home-placeholder';
   placeholder.innerHTML = `
@@ -167,6 +162,9 @@ function ensureUIElements() {
 }
 
 function injectNotesUI() {
+  // Prevent double injection
+  if (document.querySelector('.it-notes-sidebar')) return;
+
   // Floating trigger button
   const btn = document.createElement('button');
   btn.className = 'it-notes-toggle-btn';
@@ -298,7 +296,8 @@ function updateZenTimerState() {
   activeTimerInterval = null;
   removeBreakModal();
 
-  if (!settings.zenTimer) {
+  const isWatch = location.pathname === '/watch';
+  if (!settings.zenTimer || !isWatch) {
     removeTimerBadge();
     return;
   }
@@ -313,7 +312,15 @@ function updateZenTimerState() {
   // Watch video playback
   activeTimerInterval = setInterval(() => {
     const video = document.querySelector('video');
+    const isWatchPage = location.pathname === '/watch';
     
+    if (!isWatchPage) {
+      clearInterval(activeTimerInterval);
+      activeTimerInterval = null;
+      removeTimerBadge();
+      return;
+    }
+
     // Only tick down if the video is actively playing
     if (video && !video.paused && !video.ended) {
       if (secondsRemaining > 0) {
@@ -353,9 +360,14 @@ function removeTimerBadge() {
   if (badge) badge.remove();
 }
 
+// Ensure secondsRemaining is numeric and valid before rendering
 function updateTimerBadge() {
   const badge = document.querySelector('.it-timer-badge');
-  if (!badge || secondsRemaining === null) return;
+  if (!badge) return;
+
+  if (secondsRemaining === null || isNaN(secondsRemaining)) {
+    secondsRemaining = settings.timerDuration * 60;
+  }
 
   const mins = Math.floor(secondsRemaining / 60);
   const secs = secondsRemaining % 60;
@@ -429,6 +441,7 @@ function parseTime(timestamp) {
   return 0;
 }
 
+// HTML Escaper
 function escapeHtml(str) {
   return str
     .replace(/&/g, '&amp;')
