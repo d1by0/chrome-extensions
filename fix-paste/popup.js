@@ -77,6 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
     trackEvent('telemetry_toggled', { enabled: optTelemetry.checked });
   });
 
+  const lnkFeedback = document.getElementById('lnk-feedback');
+  if (lnkFeedback) {
+    lnkFeedback.addEventListener('click', () => {
+      trackEvent('feedback_clicked');
+    });
+  }
+
   formatPills.forEach(pill => {
     pill.addEventListener('click', () => {
       formatPills.forEach(p => p.classList.remove('active'));
