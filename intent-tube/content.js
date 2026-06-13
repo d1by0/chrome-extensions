@@ -494,7 +494,7 @@ function injectNotesUI() {
     </div>
     <div class="it-notes-video-info" style="padding: 8px 14px; font-size: 11px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)); display: flex; flex-direction: column; gap: 2px;">
       <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO:</span>
-      <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block;" title="Click to open video link"></a>
+      <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; display: block; word-break: break-word; line-height: 1.4; margin-top: 2px;" title="Click to open video link"></a>
     </div>
     <div class="it-notes-input-area">
       <textarea class="it-notes-input" placeholder="Type a note and press Enter..."></textarea>
@@ -534,14 +534,48 @@ function injectNotesUI() {
       const beforeCursor = text.slice(0, cursor);
       const words = beforeCursor.split(/\s+/);
       const lastWord = words[words.length - 1];
+      const cleanWord = lastWord.toLowerCase().replace(/[^a-z']/g, '');
 
-      if (AUTOCORRECT_MAP[lastWord.toLowerCase()]) {
-        const corrected = AUTOCORRECT_MAP[lastWord.toLowerCase()];
-        const finalWord = lastWord[0] === lastWord[0].toUpperCase() ? corrected[0].toUpperCase() + corrected.slice(1) : corrected;
-        const newBeforeCursor = beforeCursor.slice(0, -lastWord.length) + finalWord;
-        
-        textarea.value = newBeforeCursor + text.slice(cursor);
-        textarea.selectionStart = textarea.selectionEnd = newBeforeCursor.length;
+      if (cleanWord.length > 2) {
+        // 1. Check local abbreviation map first
+        if (AUTOCORRECT_MAP[cleanWord]) {
+          const corrected = AUTOCORRECT_MAP[cleanWord];
+          const finalWord = lastWord[0] === lastWord[0].toUpperCase() ? corrected[0].toUpperCase() + corrected.slice(1) : corrected;
+          const newBeforeCursor = beforeCursor.slice(0, -lastWord.length) + finalWord;
+          
+          textarea.value = newBeforeCursor + text.slice(cursor);
+          textarea.selectionStart = textarea.selectionEnd = newBeforeCursor.length;
+          return;
+        }
+
+        // 2. Query spelling API for dynamic corrections
+        fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(cleanWord)}&max=3`)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.length > 0) {
+              const topSuggestion = data[0].word;
+              
+              if (topSuggestion.toLowerCase() !== cleanWord) {
+                // Verify lengths are close (edit distance 1 or 2 check fallback)
+                if (Math.abs(topSuggestion.length - cleanWord.length) <= 2) {
+                  const finalWord = lastWord[0] === lastWord[0].toUpperCase() ? topSuggestion[0].toUpperCase() + topSuggestion.slice(1) : topSuggestion;
+                  
+                  const currentText = textarea.value;
+                  const targetPattern = lastWord + ' ';
+                  const lastIdx = currentText.lastIndexOf(targetPattern);
+                  
+                  // Only replace if the target misspelled word is at/near the current typing end
+                  if (lastIdx !== -1 && lastIdx + targetPattern.length >= currentText.length - 5) {
+                    const updatedText = currentText.substring(0, lastIdx) + finalWord + ' ' + currentText.substring(lastIdx + targetPattern.length);
+                    const oldCursor = textarea.selectionStart;
+                    textarea.value = updatedText;
+                    textarea.selectionStart = textarea.selectionEnd = oldCursor + (finalWord.length - lastWord.length);
+                  }
+                }
+              }
+            }
+          })
+          .catch(err => console.error("IntentTube Spelling API Error:", err));
       }
     }
 

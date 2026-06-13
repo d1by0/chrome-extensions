@@ -5,11 +5,15 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 ---
 
 ## Version & Changelog
-- **Current Version**: 1.3.1 (Ad-Aware Timer Checks, Anti-Overlap, & Sidebar Video URLs)
+- **Current Version**: 1.3.2 (Spelling API Autocorrect & Multi-line Titles)
 
 ### Release History
 
-#### v1.3.1 (Current) - Ad-Aware Timer Checks, Anti-Overlap, & Sidebar Video URLs
+#### v1.3.2 (Current) - Spelling API Autocorrect & Multi-line Titles
+- **API spelling Autocorrect**: Replaced the static, limited spell map check with a live query to the public **Datamuse API** (`api.datamuse.com/words?sp=...`) to dynamically check and correct spelling mistakes/typos for full English words and vocabulary on spacebar press.
+- **Wrapped Video Titles**: Updated the sidebar's current video link styling to wrap across multiple lines rather than using `text-overflow: ellipsis`, allowing the user to view the full title.
+
+#### v1.3.1 - Ad-Aware Timer Checks, Anti-Overlap, & Sidebar Video URLs
 - **Improved Ad-Aware Timer**: Refined Zen Focus Timer checks by querying the player container's `playing-mode` and checking for active ad-player overlays, ensuring it does not run before the video starts or during ads.
 - **Badge Positioning**: Positioned the player timer badge to `right: 110px` to avoid overlapping with YouTube's native top-right info card button.
 - **Sidebar Video URLs**: Added clear, clickable video URLs inside both the Study Notes sidebar header and the Study Block Summary container so the user understands exactly where their notes map.
@@ -87,3 +91,10 @@ Instead of fighting Google's ad-engine, I wanted to build something that restore
 - **content.js**: Injected content script executing SPA-safe page checkers, the Intent Gate search overlay, HTML5 video controls for the Zen Timer, and note-saving routines.
 - **content.css**: Stylesheet containing overlays, theater-mode hide classes, floating note toggles, and the glassmorphic sidebar layout.
 - **popup.html / css / js**: Modern popup dashboard styled with a neon-accented dark theme, facilitating setting toggles, custom time inputs, and note previews.
+
+---
+
+## Credits & Acknowledgements
+- Autocomplete search hints utilize Google Suggest query completions.
+- Spelling correction and English vocabulary autocorrect is powered by the [Datamuse API](https://www.datamuse.com/api/).
+- Toolbar vector icons provided by [Boxicons](https://boxicons.com/).
