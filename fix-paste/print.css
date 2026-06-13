@@ -215,4 +215,59 @@ hr {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  #print-loader {
+    display: none !important;
+  }
+}
+
+/* Screen-only loader overlay */
+#print-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0d0f12; 
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  font-family: 'Outfit', sans-serif;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+#print-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(99, 102, 241, 0.1);
+  border-left-color: #6366f1; 
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loader-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.loader-subtext {
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

@@ -23,8 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (images.length === 0) {
         // No images, print immediately after a small rendering delay
         setTimeout(() => {
-          window.print();
-          window.close();
+          const loader = document.getElementById('print-loader');
+          if (loader) loader.classList.add('hidden');
+          setTimeout(() => {
+            window.print();
+            window.close();
+          }, 400);
         }, 300);
       } else {
         // Wait for all images to complete loading or fail
@@ -39,11 +43,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         Promise.all(loadPromises).then(() => {
-          // Wait for rendering engine to paint the decoded images
+          // Hide loader, wait for transition, and print
+          const loader = document.getElementById('print-loader');
+          if (loader) loader.classList.add('hidden');
+          
           setTimeout(() => {
             window.print();
             window.close();
-          }, 800);
+          }, 800); // 800ms gives time for fading animation & paint decoding
         });
       }
     }
