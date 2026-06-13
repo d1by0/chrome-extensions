@@ -1,26 +1,55 @@
 # Fix Paste
 
-Fix Paste is a lightweight Chrome extension that parses webpages, extracts core content (removing navigation bars, sidebars, comments, and advertisements), and converts it into structured formats.
+Fix Paste is a premium, lightweight Chrome extension designed to extract, clean, and format webpage content. It strips away noisy page elements like ads, menus, sidebars, and comments, yielding clean Markdown, Plain Text, semantic HTML, or JSON.
+
+---
 
 ## Version
-- **Current Version**: 1.1.0 (Table Support & Context Menu Update)
+- **Current Version**: 1.2.0 (Premium Light Theme, History Panel, & Element Picker)
 
-## Features
-- **Smart DOM Heuristics**: Automatically scores parent elements based on text density, child node tags, and class/id keyword attributes to locate the core content element.
-- **Table Parsing**: Intelligently extracts HTML tables and formats them into clean GFM (GitHub Flavored Markdown) tables, aligned plain-text layouts, or structured JSON.
-- **Right-Click Context Menu**: Allows copying formatted page content instantly via a right-click browser menu action without opening the popup interface.
-- **Feedback Overlay**: Displays floating toast feedback overlays directly on the active webpage indicating successful extractions.
-- **Structural Formats**: Converts DOM elements to clean Markdown, formatted Plain Text, or structured JSON blocks.
-- **Configurable Filters**: Offers simple options to toggle the inclusion of images and link preservation during extraction.
-- **Offline & Private**: Functions entirely within the browser sandbox without communicating with remote servers or tracking user data.
+---
+
+## What Fix Paste Can Do
+
+### 1. High-Fidelity Content Purification
+- **Smart DOM Heuristics**: Automatically scans and scores webpage containers based on text density, tags (like `<p>` counts), link density, and class/id attributes to extract only the core article or page body.
+- **Table Parsing**: Translates raw HTML tables and flexible div-based grids into clean GFM (GitHub Flavored Markdown) tables, aligned plain-text grids, or structured JSON.
+- **Copy/Paste Bypass**: Automatically circumvents restrictive website blocks (such as disabled right-click context menus, copy events, select events, or drag events) so you can capture text on any webpage.
+
+### 2. Premium Light Theme & Clean UI
+- **Modern Minimal Design**: Replaced bulky toggle cards with a unified, clean segmented panel styled in a gorgeous Cobalt Blue (`#0035FE`) and slate grey light theme.
+- **Boxicons Integration**: Swapped out emojis for crisp, professional icon sets across all buttons and tabs.
+- **Geist Typeface**: Integrated Vercel's clean **Geist** font-family across the popup dashboard and generated PDF print documents.
+
+### 3. Interactive Element Picker
+- **Precision Targeting**: Allows you to click **"Select Element"** to hover over page elements, highlighting them with a dashed blue outline. Click to extract and format *only* that selected container (bypassing auto-heuristics entirely). ESC cancels selection.
+
+### 4. Clipboard History (Temporary Saver)
+- **Persistent Local Snippets**: Automatically saves clippings to `chrome.storage.local`.
+- **Configurable Expiry Alarm**: Set clippings to auto-expire after 15 minutes, 30 minutes, 1 hour, 1 day, or keep them for "Session Only" (automatically cleared when the browser restarts).
+- **Search & Filter**: Find saved clips instantly using the history search bar.
+- **Quick Re-Copy**: Re-copy history cards in Plain Text, Markdown, or HTML, or download them directly as markdown files.
+
+### 5. Multi-Tab Batch Scraper
+- **Combine Scrapes**: Query all open tabs in your current browser window, select which tabs you want to extract, and compile their text contents sequentially into a single consolidated Markdown (`.md`) file.
+
+### 6. Performance & PDF Optimization
+- **Parallel Image Resizing**: Fetches and converts page images to Base64 in parallel using `Promise.all` and scales down high-resolution graphics to a max boundary of 800px (with JPEG 0.7 compression) to save memory.
+- **Load Safety Timeout**: Features a 1.5-second fallback timeout inside `print.js` to ensure PDF generators never get stuck loading broken external assets. Includes a clean fade-out loading screen overlay.
+
+---
 
 ## Installation
 1. Open Google Chrome and navigate to `chrome://extensions/`.
-2. Enable "Developer mode" via the top-right toggle switch.
-3. Click "Load unpacked" in the top-left menu.
-4. Select the `fix-paste` directory from this repository.
+2. Enable **Developer mode** via the toggle switch in the top-right corner.
+3. Click **Load unpacked** in the top-left menu.
+4. Select the `fix-paste` directory.
+
+---
 
 ## Technical Architecture
-- **manifest.json**: Manifest V3 configuration defining active tab scoping and scripting execution.
-- **content.js**: Executes only when triggered by the popup, querying target nodes, applying cleaners, and returning a structured output.
-- **popup.html / css / js**: Implements a sleek dark-themed interface built using the Outfit font family, HSL design tokens, and CSS animations.
+- **manifest.json**: Manifest V3 config incorporating alarms, tabs, and commands permission scopes.
+- **background.js**: Service worker managing background history purges, startup session cleans, context menus, and keyboard hotkeys (`Alt+Shift+C`).
+- **content.js**: Injected DOM scraper hosting clean cleaners, table parsers, custom image compressors, right-click bypasses, and the interactive element picker.
+- **popup.html / css / js**: Unified tab controller for format selection, settings management, search filters, and batch processing.
+- **print.html / css / js**: PDF document preview window supporting custom load states and rendering.
