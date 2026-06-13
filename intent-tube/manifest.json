@@ -12,15 +12,15 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/IntentTube_logo.avif",
-      "48": "assets/IntentTube_logo.avif",
-      "128": "assets/IntentTube_logo.avif"
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
     }
   },
   "icons": {
-    "16": "assets/IntentTube_logo.avif",
-    "48": "assets/IntentTube_logo.avif",
-    "128": "assets/IntentTube_logo.avif"
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
   },
   "content_scripts": [
     {
