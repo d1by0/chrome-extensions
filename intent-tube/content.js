@@ -168,7 +168,7 @@ function injectIntentPlaceholder() {
     <h1>IntentTube</h1>
     <p>Turn passive watching into purposeful viewing.</p>
     <form class="it-home-search-box">
-      <input type="text" class="it-home-search-input" placeholder="What are you here to watch or learn?" required autofocus>
+      <input type="text" class="it-home-search-input" placeholder="What are you here to watch or learn?" required autofocus autocomplete="off">
       <button type="submit" class="it-home-search-btn">Search</button>
     </form>
     <div class="it-home-suggestions">
@@ -182,6 +182,106 @@ function injectIntentPlaceholder() {
   // Bind form search
   const form = placeholder.querySelector('.it-home-search-box');
   const input = placeholder.querySelector('.it-home-search-input');
+
+  // Create dropdown container
+  const dropdown = document.createElement('ul');
+  dropdown.className = 'it-autocomplete-dropdown';
+  form.appendChild(dropdown);
+
+  let activeIndex = -1;
+  let currentSuggestions = [];
+
+  // Listen to search autocomplete fetch (client=firefox yields clean JSON)
+  input.addEventListener('input', () => {
+    const query = input.value.trim();
+    if (!query) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      currentSuggestions = [];
+      activeIndex = -1;
+      return;
+    }
+
+    fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`)
+      .then(r => r.json())
+      .then(data => {
+        const suggestions = data[1] || [];
+        currentSuggestions = suggestions.slice(0, 6); // Keep top 6 items
+        activeIndex = -1;
+
+        if (currentSuggestions.length === 0) {
+          dropdown.style.display = 'none';
+          dropdown.innerHTML = '';
+          return;
+        }
+
+        dropdown.innerHTML = currentSuggestions.map((item, idx) => `
+          <li class="it-autocomplete-item" data-index="${idx}">
+            <span class="it-autocomplete-icon">🔍</span>
+            <span class="it-autocomplete-text">${escapeHtml(item)}</span>
+          </li>
+        `).join('');
+        dropdown.style.display = 'block';
+
+        // Click selection
+        dropdown.querySelectorAll('.it-autocomplete-item').forEach(itemEl => {
+          itemEl.addEventListener('click', () => {
+            const index = parseInt(itemEl.dataset.index, 10);
+            const selectedText = currentSuggestions[index];
+            input.value = selectedText;
+            window.location.href = `/results?search_query=${encodeURIComponent(selectedText)}`;
+          });
+        });
+      })
+      .catch(err => {
+        console.error("IntentTube Autocomplete Error:", err);
+      });
+  });
+
+  // Keyboard navigation
+  input.addEventListener('keydown', (e) => {
+    const items = dropdown.querySelectorAll('.it-autocomplete-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && activeIndex < currentSuggestions.length) {
+        e.preventDefault();
+        const selectedText = currentSuggestions[activeIndex];
+        input.value = selectedText;
+        window.location.href = `/results?search_query=${encodeURIComponent(selectedText)}`;
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+      activeIndex = -1;
+    }
+  });
+
+  function updateActiveItem(items) {
+    items.forEach((item, idx) => {
+      if (idx === activeIndex) {
+        item.classList.add('active');
+        input.value = currentSuggestions[idx];
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  // Close dropdown on click outside search box
+  document.addEventListener('click', (e) => {
+    if (!form.contains(e.target)) {
+      dropdown.style.display = 'none';
+      activeIndex = -1;
+    }
+  });
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
