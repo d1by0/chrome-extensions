@@ -618,8 +618,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Telemetry / Analytics Manager ---
-  // To track live stats, enter your free Mixpanel Project Token below:
   const TELEMETRY_TOKEN = '6d0ee0ebb1a11bbea59139fd285990b0';
+
+  if (typeof mixpanel !== 'undefined' && TELEMETRY_TOKEN) {
+    try {
+      mixpanel.init(TELEMETRY_TOKEN, {
+        autocapture: true,
+        persistence: 'localStorage',
+        opt_out_tracking_by_default: false
+      });
+    } catch (e) {
+      console.warn('Mixpanel initialization failed:', e);
+    }
+  }
 
   function trackEvent(eventName, properties = {}) {
     const telemetryCheckbox = document.getElementById('opt-telemetry');
@@ -628,34 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Log locally in development/console so the creator can see events firing
     console.log(`[Telemetry Event] ${eventName}:`, properties);
 
-    if (!TELEMETRY_TOKEN) return;
-
-    const payload = {
-      event: eventName,
-      properties: {
-        token: TELEMETRY_TOKEN,
-        distinct_id: getAnonymousUserId(),
-        time: Date.now(),
-        ...properties
+    if (typeof mixpanel !== 'undefined' && TELEMETRY_TOKEN) {
+      try {
+        mixpanel.track(eventName, properties);
+      } catch (err) {
+        console.warn('Telemetry transmission failed:', err);
       }
-    };
-
-    fetch('https://api.mixpanel.com/track', {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    }).catch(err => console.warn('Telemetry transmission failed:', err));
-  }
-
-  function getAnonymousUserId() {
-    let id = localStorage.getItem('anonymous_client_id');
-    if (!id) {
-      id = 'client_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-      localStorage.setItem('anonymous_client_id', id);
     }
-    return id;
   }
 });
