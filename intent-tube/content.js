@@ -13,23 +13,45 @@ let secondsRemaining = null;
 let currentVideoUrl = '';
 let isInitialized = false;
 
-// Rotating Focus Quotes
-const FOCUS_QUOTES = [
-  "Focus is a muscle, and you are building it right now.",
-  "Your attention is your most valuable asset. Guard it carefully.",
-  "Deep work is the superpower of the 21st century.",
-  "Don't count the minutes; make the minutes count.",
-  "The difference between average and exceptional is focus."
-];
+// Context-Aware Intent Suggestions Map
+const INTENT_SUGGESTIONS = {
+  "cinematography": [
+    "best cinematography techniques for beginners",
+    "solo filmmaking tips & lighting guide",
+    "how to make videos look cinematic"
+  ],
+  "filmmaking": [
+    "solo filmmaking tips & lighting guide",
+    "how to write a short film script",
+    "indie film directing masterclass"
+  ],
+  "coding": [
+    "clean code best practices & architecture",
+    "how to start coding as a beginner",
+    "data structures and algorithms tutorial"
+  ],
+  "javascript": [
+    "javascript async await explanation",
+    "modern javascript features you should know",
+    "javascript arrays and objects masterclass"
+  ],
+  "design": [
+    "ux design core principles for beginners",
+    "how to design clean web interfaces",
+    "color theory and typography rules"
+  ],
+  "photography": [
+    "photography composition rules and shots",
+    "how to shoot manual mode photography",
+    "lighting basics for portrait photography"
+  ]
+};
 
-// Clickable Search Suggestions
-const SEARCH_SUGGESTIONS = [
-  "Next.js 15 Deep Dive",
-  "CSS Flexbox & Grid Guide",
-  "TypeScript Tutorial",
-  "Mindful Breathing Meditation",
-  "History of Web Development"
-];
+// SVG Assets
+const SVG_SEARCH = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="it-autocomplete-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+const SVG_PENCIL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
+const SVG_TIMER = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+const SVG_BULB = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffcc00;" class="it-autocomplete-icon"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line></svg>`;
 
 // Load settings from storage before starting anything
 chrome.storage.local.get({
@@ -154,14 +176,6 @@ function injectIntentPlaceholder() {
   const homeContainer = document.querySelector('ytd-browse[page-subtype="home"]');
   if (!homeContainer) return;
 
-  // Select a random quote
-  const randomQuote = FOCUS_QUOTES[Math.floor(Math.random() * FOCUS_QUOTES.length)];
-
-  // Create suggestions HTML
-  const suggestionsHtml = SEARCH_SUGGESTIONS.map(term => 
-    `<span class="it-home-suggestion-chip" data-query="${term}">${term}</span>`
-  ).join('');
-
   const placeholder = document.createElement('div');
   placeholder.className = 'it-home-placeholder';
   placeholder.innerHTML = `
@@ -171,12 +185,6 @@ function injectIntentPlaceholder() {
       <input type="text" class="it-home-search-input" placeholder="What are you here to watch or learn?" required autofocus autocomplete="off">
       <button type="submit" class="it-home-search-btn">Search</button>
     </form>
-    <div class="it-home-suggestions">
-      ${suggestionsHtml}
-    </div>
-    <div class="it-home-quote">
-      "${randomQuote}"
-    </div>
   `;
 
   // Bind form search
@@ -191,9 +199,9 @@ function injectIntentPlaceholder() {
   let activeIndex = -1;
   let currentSuggestions = [];
 
-  // Listen to search autocomplete fetch (client=firefox yields clean JSON)
+  // Listen to search autocomplete fetch
   input.addEventListener('input', () => {
-    const query = input.value.trim();
+    const query = input.value.trim().toLowerCase();
     if (!query) {
       dropdown.style.display = 'none';
       dropdown.innerHTML = '';
@@ -202,11 +210,34 @@ function injectIntentPlaceholder() {
       return;
     }
 
+    // Check for context-aware focus suggestions
+    let contextualList = [];
+    for (const key in INTENT_SUGGESTIONS) {
+      if (query.includes(key) || key.includes(query)) {
+        contextualList = INTENT_SUGGESTIONS[key];
+        break;
+      }
+    }
+
     fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`)
       .then(r => r.json())
       .then(data => {
-        const suggestions = data[1] || [];
-        currentSuggestions = suggestions.slice(0, 6); // Keep top 6 items
+        const standardSuggestions = data[1] || [];
+        
+        // Build hybrid suggestion items (Prioritize smart contextual guides, then standard suggestions)
+        const combined = [];
+        contextualList.forEach(item => {
+          combined.push({ text: item, isContextual: true });
+        });
+        
+        // Deduplicate and append standard suggestions
+        standardSuggestions.forEach(item => {
+          if (!combined.some(c => c.text.toLowerCase() === item.toLowerCase())) {
+            combined.push({ text: item, isContextual: false });
+          }
+        });
+
+        currentSuggestions = combined.slice(0, 7); // Keep top 7 total items
         activeIndex = -1;
 
         if (currentSuggestions.length === 0) {
@@ -216,9 +247,9 @@ function injectIntentPlaceholder() {
         }
 
         dropdown.innerHTML = currentSuggestions.map((item, idx) => `
-          <li class="it-autocomplete-item" data-index="${idx}">
-            <span class="it-autocomplete-icon">🔍</span>
-            <span class="it-autocomplete-text">${escapeHtml(item)}</span>
+          <li class="it-autocomplete-item ${item.isContextual ? 'contextual-suggest' : ''}" data-index="${idx}">
+            ${item.isContextual ? SVG_BULB : SVG_SEARCH}
+            <span class="it-autocomplete-text" style="${item.isContextual ? 'font-weight: 500;' : ''}">${escapeHtml(item.text)}</span>
           </li>
         `).join('');
         dropdown.style.display = 'block';
@@ -227,7 +258,7 @@ function injectIntentPlaceholder() {
         dropdown.querySelectorAll('.it-autocomplete-item').forEach(itemEl => {
           itemEl.addEventListener('click', () => {
             const index = parseInt(itemEl.dataset.index, 10);
-            const selectedText = currentSuggestions[index];
+            const selectedText = currentSuggestions[index].text;
             input.value = selectedText;
             window.location.href = `/results?search_query=${encodeURIComponent(selectedText)}`;
           });
@@ -254,7 +285,7 @@ function injectIntentPlaceholder() {
     } else if (e.key === 'Enter') {
       if (activeIndex >= 0 && activeIndex < currentSuggestions.length) {
         e.preventDefault();
-        const selectedText = currentSuggestions[activeIndex];
+        const selectedText = currentSuggestions[activeIndex].text;
         input.value = selectedText;
         window.location.href = `/results?search_query=${encodeURIComponent(selectedText)}`;
       }
@@ -268,7 +299,7 @@ function injectIntentPlaceholder() {
     items.forEach((item, idx) => {
       if (idx === activeIndex) {
         item.classList.add('active');
-        input.value = currentSuggestions[idx];
+        input.value = currentSuggestions[idx].text;
       } else {
         item.classList.remove('active');
       }
@@ -289,14 +320,6 @@ function injectIntentPlaceholder() {
     if (query) {
       window.location.href = `/results?search_query=${encodeURIComponent(query)}`;
     }
-  });
-
-  // Bind search suggestions click
-  placeholder.querySelectorAll('.it-home-suggestion-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const query = chip.dataset.query;
-      window.location.href = `/results?search_query=${encodeURIComponent(query)}`;
-    });
   });
 
   homeContainer.appendChild(placeholder);
@@ -337,10 +360,10 @@ function injectNotesUI() {
   // Prevent double injection
   if (document.querySelector('.it-notes-sidebar')) return;
 
-  // Floating trigger button
+  // Floating trigger button using clean SVG pencil
   const btn = document.createElement('button');
   btn.className = 'it-notes-toggle-btn';
-  btn.innerHTML = '📝';
+  btn.innerHTML = SVG_PENCIL;
   btn.title = 'IntentTube Study Notes';
   btn.addEventListener('click', () => {
     const sb = document.querySelector('.it-notes-sidebar');
@@ -545,7 +568,9 @@ function updateTimerBadge() {
 
   const mins = Math.floor(secondsRemaining / 60);
   const secs = secondsRemaining % 60;
-  badge.textContent = `⏱️ ${mins}:${secs.toString().padStart(2, '0')}`;
+  
+  // SVG Timer rendering
+  badge.innerHTML = `${SVG_TIMER} ${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 function triggerFocusBreak() {

@@ -83,6 +83,10 @@ body.it-gate-active ytd-browse[page-subtype="home"] #primary {
   background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
 }
 
+.it-autocomplete-item.contextual-suggest {
+  border-left: 3px solid var(--yt-spec-static-brand-red, #cc0000);
+}
+
 .it-autocomplete-icon {
   color: var(--yt-spec-text-secondary, #aaa);
 }
