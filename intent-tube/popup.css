@@ -30,10 +30,16 @@ body {
 .app-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .brand-logo {
