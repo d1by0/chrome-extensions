@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Fix Paste",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Extract clean, structured markdown, plain text, or JSON content from any webpage, removing ads, navigation menus, and footers.",
   "permissions": [
     "activeTab",
@@ -17,12 +17,16 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "assets/fix_paste.avif"
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
   },
   "icons": {
-    "16": "assets/fix_paste.avif",
-    "48": "assets/fix_paste.avif",
-    "128": "assets/fix_paste.avif"
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
   },
   "commands": {
     "quick-extract": {
