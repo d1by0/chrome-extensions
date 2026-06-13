@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IntentTube",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Turn passive watching into purposeful viewing. Distraction-free YouTube with an Intent Gate, Zen Timer, and timestamped notes.",
   "permissions": [
     "storage"

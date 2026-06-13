@@ -5,11 +5,19 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 ---
 
 ## Version & Changelog
-- **Current Version**: 1.1.0 (Smart Suggestions & Clean Refactor)
+- **Current Version**: 1.2.0 (Spell Correction, Interactive Timer, & Draggable Notes)
 
 ### Release History
 
-#### v1.1.0 (Current) - Smart Suggestions & Clean Refactor
+#### v1.2.0 (Current) - Spell Correction, Interactive Timer, & Draggable Notes
+- **Draggable Notes Toggle**: Allows users to drag and position the floating pencil note button anywhere on the screen.
+- **English Autocorrect**: Automatically corrects common English spelling mistakes (e.g. `teh` -> `the`, `recieve` -> `receive`) inside the notes textarea upon hitting space.
+- **Interactive Zen Timer**: Adds click controls to the timer badge (`+5m` and `-5m` adjustment triggers) to modify duration directly from the video player.
+- **Intelligent Timestamping**: Captures note timestamps the exact moment writing *starts* rather than when hitting enter.
+- **Dynamic Summary Block**: Automatically generates a bulleted study summary card detailing highlights and note counts inside the sidebar.
+- **Trending Search Badges**: Intercepts queries to display matching trending topics decorated with a fire vector icon.
+
+#### v1.1.0 - Smart Suggestions & Clean Refactor
 - **Smart Autocomplete**: Intercepts YouTube's autocomplete search queries and injects focus-driven suggestions (e.g. cinematography, coding, design) when matching intent keywords are typed.
 - **Master Toggle**: Added a global "Enable IntentTube" switch inside the popup header, restoring YouTube to its native state instantly when toggled off.
 - **Emoji-Free Vector UI**: Replaced all emojis in the content script with inline SVGs (Search, Timer, Pencil, Bulb) to bypass CSP issues, and linked Boxicons in the popup.

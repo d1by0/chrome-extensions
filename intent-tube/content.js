@@ -13,6 +13,26 @@ let secondsRemaining = null;
 let currentVideoUrl = '';
 let isInitialized = false;
 
+// Note start time tracker
+let activeNoteTimestamp = null;
+
+// English Autocorrect Map
+const AUTOCORRECT_MAP = {
+  "teh": "the",
+  "recieve": "receive",
+  "seperate": "separate",
+  "wich": "which",
+  "dont": "don't",
+  "cant": "can't",
+  "wont": "won't",
+  "freind": "friend",
+  "beleive": "believe",
+  "definately": "definitely",
+  "im": "I'm",
+  "youre": "you're",
+  "its": "it's"
+};
+
 // Context-Aware Intent Suggestions Map
 const INTENT_SUGGESTIONS = {
   "cinematography": [
@@ -47,11 +67,20 @@ const INTENT_SUGGESTIONS = {
   ]
 };
 
+// Trending search topics
+const TRENDING_TOPICS = [
+  "Next.js 15 App Router Tutorial",
+  "Solo Filmmaking Tips",
+  "Clean Architecture Coding Guidelines",
+  "Cinematic Lighting Setup Guide"
+];
+
 // SVG Assets
 const SVG_SEARCH = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="it-autocomplete-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
 const SVG_PENCIL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const SVG_TIMER = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 const SVG_BULB = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffcc00;" class="it-autocomplete-icon"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line></svg>`;
+const SVG_FIRE = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ff4500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="it-autocomplete-icon"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
 
 // Load settings from storage before starting anything
 chrome.storage.local.get({
@@ -219,21 +248,35 @@ function injectIntentPlaceholder() {
       }
     }
 
+    // Check for trending topics
+    let trendingList = [];
+    TRENDING_TOPICS.forEach(topic => {
+      if (topic.toLowerCase().includes(query)) {
+        trendingList.push(topic);
+      }
+    });
+
     fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`)
       .then(r => r.json())
       .then(data => {
         const standardSuggestions = data[1] || [];
         
-        // Build hybrid suggestion items (Prioritize smart contextual guides, then standard suggestions)
+        // Build hybrid suggestion items (Prioritize smart contextual guides, then trending fire items, then standard suggestions)
         const combined = [];
         contextualList.forEach(item => {
-          combined.push({ text: item, isContextual: true });
+          combined.push({ text: item, type: 'contextual' });
+        });
+
+        trendingList.forEach(item => {
+          if (!combined.some(c => c.text.toLowerCase() === item.toLowerCase())) {
+            combined.push({ text: item, type: 'trending' });
+          }
         });
         
         // Deduplicate and append standard suggestions
         standardSuggestions.forEach(item => {
           if (!combined.some(c => c.text.toLowerCase() === item.toLowerCase())) {
-            combined.push({ text: item, isContextual: false });
+            combined.push({ text: item, type: 'standard' });
           }
         });
 
@@ -246,12 +289,18 @@ function injectIntentPlaceholder() {
           return;
         }
 
-        dropdown.innerHTML = currentSuggestions.map((item, idx) => `
-          <li class="it-autocomplete-item ${item.isContextual ? 'contextual-suggest' : ''}" data-index="${idx}">
-            ${item.isContextual ? SVG_BULB : SVG_SEARCH}
-            <span class="it-autocomplete-text" style="${item.isContextual ? 'font-weight: 500;' : ''}">${escapeHtml(item.text)}</span>
-          </li>
-        `).join('');
+        dropdown.innerHTML = currentSuggestions.map((item, idx) => {
+          let icon = SVG_SEARCH;
+          if (item.type === 'contextual') icon = SVG_BULB;
+          else if (item.type === 'trending') icon = SVG_FIRE;
+
+          return `
+            <li class="it-autocomplete-item ${item.type === 'contextual' ? 'contextual-suggest' : ''}" data-index="${idx}">
+              ${icon}
+              <span class="it-autocomplete-text" style="${item.type !== 'standard' ? 'font-weight: 500;' : ''}">${escapeHtml(item.text)}</span>
+            </li>
+          `;
+        }).join('');
         dropdown.style.display = 'block';
 
         // Click selection
@@ -267,13 +316,6 @@ function injectIntentPlaceholder() {
       .catch(err => {
         console.error("IntentTube Autocomplete Error:", err);
       });
-  });
-
-  // Re-display suggestions when focusing back in
-  input.addEventListener('focus', () => {
-    if (input.value.trim() && currentSuggestions.length > 0) {
-      dropdown.style.display = 'block';
-    }
   });
 
   // Keyboard navigation
@@ -321,6 +363,13 @@ function injectIntentPlaceholder() {
     }
   });
 
+  // Re-display suggestions when focusing back in
+  input.addEventListener('focus', () => {
+    if (input.value.trim() && currentSuggestions.length > 0) {
+      dropdown.style.display = 'block';
+    }
+  });
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const query = input.value.trim();
@@ -364,21 +413,54 @@ function ensureUIElements() {
 
 function injectNotesUI() {
   if (!settings.extensionEnabled) return;
-  // Prevent double injection
   if (document.querySelector('.it-notes-sidebar')) return;
 
-  // Floating trigger button using clean SVG pencil
+  // 1. Draggable Floating Pencil Toggle Button
   const btn = document.createElement('button');
   btn.className = 'it-notes-toggle-btn';
   btn.innerHTML = SVG_PENCIL;
   btn.title = 'IntentTube Study Notes';
-  btn.addEventListener('click', () => {
-    const sb = document.querySelector('.it-notes-sidebar');
-    if (sb) sb.classList.toggle('open');
+
+  // Draggable support
+  let isDragging = false;
+  let startX, startY;
+  let offsetX, offsetY;
+
+  btn.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    offsetX = e.clientX - btn.getBoundingClientRect().left;
+    offsetY = e.clientY - btn.getBoundingClientRect().top;
+    btn.style.transition = 'none';
   });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    btn.style.left = `${e.clientX - offsetX}px`;
+    btn.style.top = `${e.clientY - offsetY}px`;
+    btn.style.right = 'auto';
+    btn.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+      isDragging = false;
+      btn.style.transition = 'transform 0.2s, background 0.2s';
+      
+      // If moved less than 5px, trigger standard click toggle
+      const deltaX = Math.abs(e.clientX - startX);
+      const deltaY = Math.abs(e.clientY - startY);
+      if (deltaX < 5 && deltaY < 5) {
+        const sb = document.querySelector('.it-notes-sidebar');
+        if (sb) sb.classList.toggle('open');
+      }
+    }
+  });
+
   document.body.appendChild(btn);
 
-  // Sidebar Panel
+  // 2. Sidebar Panel
   const sidebar = document.createElement('div');
   sidebar.className = 'it-notes-sidebar';
   sidebar.innerHTML = `
@@ -392,6 +474,7 @@ function injectNotesUI() {
     </div>
     <div class="it-notes-list-container">
       <ul class="it-notes-list"></ul>
+      <div class="it-notes-summary-container"></div>
     </div>
   `;
 
@@ -400,11 +483,46 @@ function injectNotesUI() {
   });
 
   const textarea = sidebar.querySelector('.it-notes-input');
+
+  // Input listener to capture start timestamp when typing begins
+  textarea.addEventListener('input', () => {
+    const video = document.querySelector('video');
+    if (video && activeNoteTimestamp === null && textarea.value.trim().length > 0) {
+      activeNoteTimestamp = formatTime(video.currentTime);
+      sidebar.querySelector('.it-notes-input-hint').textContent = `Capturing note starting at [${activeNoteTimestamp}]...`;
+    }
+    if (textarea.value.trim().length === 0) {
+      activeNoteTimestamp = null;
+      sidebar.querySelector('.it-notes-input-hint').textContent = `Note will save automatically with the video timestamp`;
+    }
+  });
+
+  // Autocorrect spelling mistakes on space
   textarea.addEventListener('keydown', (e) => {
+    if (e.key === ' ') {
+      const text = textarea.value;
+      const cursor = textarea.selectionStart;
+      const beforeCursor = text.slice(0, cursor);
+      const words = beforeCursor.split(/\s+/);
+      const lastWord = words[words.length - 1];
+
+      if (AUTOCORRECT_MAP[lastWord.toLowerCase()]) {
+        const corrected = AUTOCORRECT_MAP[lastWord.toLowerCase()];
+        const finalWord = lastWord[0] === lastWord[0].toUpperCase() ? corrected[0].toUpperCase() + corrected.slice(1) : corrected;
+        const newBeforeCursor = beforeCursor.slice(0, -lastWord.length) + finalWord;
+        
+        textarea.value = newBeforeCursor + text.slice(cursor);
+        textarea.selectionStart = textarea.selectionEnd = newBeforeCursor.length;
+      }
+    }
+
+    // Submit note
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       saveCurrentNote(textarea.value.trim());
       textarea.value = '';
+      activeNoteTimestamp = null;
+      sidebar.querySelector('.it-notes-input-hint').textContent = `Note will save automatically with the video timestamp`;
     }
   });
 
@@ -416,7 +534,7 @@ function saveCurrentNote(noteText) {
   if (!noteText) return;
 
   const video = document.querySelector('video');
-  const timestamp = video ? formatTime(video.currentTime) : '0:00';
+  const timestamp = activeNoteTimestamp || (video ? formatTime(video.currentTime) : '0:00');
   const videoTitleEl = document.querySelector('ytd-watch-metadata h1 yt-formatted-string') || document.querySelector('h1.title');
   const videoTitle = videoTitleEl ? videoTitleEl.textContent.trim() : document.title;
 
@@ -449,6 +567,8 @@ function renderNotesList() {
 
   if (currentVideoNotes.length === 0) {
     list.innerHTML = `<li style="text-align: center; color: var(--yt-spec-text-secondary, #aaa); font-size: 12px; margin-top: 24px;">No notes for this video yet.</li>`;
+    const summaryContainer = document.querySelector('.it-notes-summary-container');
+    if (summaryContainer) summaryContainer.innerHTML = '';
     return;
   }
 
@@ -478,6 +598,30 @@ function renderNotesList() {
 
     list.appendChild(li);
   });
+
+  // Generate dynamic notes summary block
+  renderNotesSummary(currentVideoNotes);
+}
+
+function renderNotesSummary(notes) {
+  const container = document.querySelector('.it-notes-summary-container');
+  if (!container) return;
+
+  // Build key highlights list (TL;DR from first few words of notes)
+  const highlights = notes.slice(0, 3).map(n => {
+    const cleanText = n.noteText.length > 35 ? n.noteText.slice(0, 35) + '...' : n.noteText;
+    return `<li>At ${n.timestamp}: ${escapeHtml(cleanText)}</li>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="it-notes-summary-box">
+      <div class="it-notes-summary-title">Study Block Summary</div>
+      <div>Notes taken: <strong>${notes.length} key points</strong></div>
+      <ul style="margin-top: 6px; padding-left: 12px; list-style-type: disc;">
+        ${highlights}
+      </ul>
+    </div>
+  `;
 }
 
 function deleteNote(id) {
@@ -503,6 +647,7 @@ function updateZenTimerState() {
   const isWatch = location.pathname === '/watch';
   if (!settings.zenTimer || !isWatch) {
     removeTimerBadge();
+    removeTimerBadgeControls();
     return;
   }
 
@@ -522,6 +667,7 @@ function updateZenTimerState() {
       clearInterval(activeTimerInterval);
       activeTimerInterval = null;
       removeTimerBadge();
+      removeTimerBadgeControls();
       return;
     }
 
@@ -554,14 +700,65 @@ function injectTimerBadge() {
   if (!badge) {
     badge = document.createElement('div');
     badge.className = 'it-timer-badge';
+    badge.title = 'Click to adjust timer duration';
+    
+    // Toggle adjust panel on click
+    badge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const controls = player.querySelector('.it-timer-badge-controls');
+      if (controls) {
+        controls.classList.toggle('active');
+      }
+    });
+
     player.appendChild(badge);
   }
+
+  // Inject adjusting controls overlay
+  let controls = player.querySelector('.it-timer-badge-controls');
+  if (!controls) {
+    controls = document.createElement('div');
+    controls.className = 'it-timer-badge-controls';
+    controls.innerHTML = `
+      <button class="it-timer-adjust-btn btn-plus">+5m</button>
+      <button class="it-timer-adjust-btn btn-minus">-5m</button>
+    `;
+
+    controls.querySelector('.btn-plus').addEventListener('click', (e) => {
+      e.stopPropagation();
+      secondsRemaining += 5 * 60;
+      updateTimerBadge();
+    });
+
+    controls.querySelector('.btn-minus').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (secondsRemaining > 5 * 60) {
+        secondsRemaining -= 5 * 60;
+      } else {
+        secondsRemaining = 0;
+      }
+      updateTimerBadge();
+    });
+
+    // Close controls panel clicking anywhere else in player
+    player.addEventListener('click', () => {
+      controls.classList.remove('active');
+    });
+
+    player.appendChild(controls);
+  }
+
   updateTimerBadge();
 }
 
 function removeTimerBadge() {
   const badge = document.querySelector('.it-timer-badge');
   if (badge) badge.remove();
+}
+
+function removeTimerBadgeControls() {
+  const controls = document.querySelector('.it-timer-badge-controls');
+  if (controls) controls.remove();
 }
 
 // Ensure secondsRemaining is numeric and valid before rendering
