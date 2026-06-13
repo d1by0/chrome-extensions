@@ -453,7 +453,7 @@ function injectNotesUI() {
       <button class="it-notes-close-btn">✕</button>
     </div>
     <div class="it-notes-video-info" style="padding: 8px 14px; font-size: 11px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)); display: flex; flex-direction: column; gap: 2px;">
-      <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO URL:</span>
+      <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO:</span>
       <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block;" title="Click to open video link"></a>
     </div>
     <div class="it-notes-input-area">
@@ -556,8 +556,11 @@ function renderNotesList() {
   // Update video info link in sidebar header
   const videoLinkEl = document.querySelector('.it-current-video-link');
   if (videoLinkEl) {
+    const videoTitleEl = document.querySelector('ytd-watch-metadata h1 yt-formatted-string') || document.querySelector('h1.title');
+    const videoTitle = videoTitleEl ? videoTitleEl.textContent.trim() : 'YouTube Video';
     videoLinkEl.href = currentBaseUrl;
-    videoLinkEl.textContent = currentBaseUrl;
+    videoLinkEl.textContent = videoTitle;
+    videoLinkEl.title = `Watch: ${videoTitle} (${currentBaseUrl})`;
   }
 
   if (currentVideoNotes.length === 0) {
@@ -609,12 +612,14 @@ function renderNotesSummary(notes) {
   }).join('');
 
   const currentBaseUrl = location.href.split('&')[0];
+  const videoTitleEl = document.querySelector('ytd-watch-metadata h1 yt-formatted-string') || document.querySelector('h1.title');
+  const videoTitle = videoTitleEl ? videoTitleEl.textContent.trim() : 'YouTube Video';
 
   container.innerHTML = `
     <div class="it-notes-summary-box">
       <div class="it-notes-summary-title">Study Block Summary</div>
       <div style="margin-bottom: 6px; font-size: 10px; word-break: break-all; color: var(--yt-spec-text-secondary, #aaa);">
-        Source URL: <a href="${currentBaseUrl}" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none;">${currentBaseUrl}</a>
+        Source: <a href="${currentBaseUrl}" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none;" title="${currentBaseUrl}">${escapeHtml(videoTitle)}</a>
       </div>
       <div>Notes taken: <strong>${notes.length} key points</strong></div>
       <ul style="margin-top: 6px; padding-left: 12px; list-style-type: disc;">

@@ -333,6 +333,13 @@ body.it-theater-active ytd-reel-shelf-renderer {
   background: #ff0000;
 }
 
+/* Push YouTube player content left when sidebar is open to prevent overlapping */
+body.it-sidebar-open ytd-watch-flexy {
+  padding-right: 300px !important;
+  box-sizing: border-box !important;
+  transition: padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* 4. Zen Timer Overlay */
 .it-timer-badge {
   position: absolute;
