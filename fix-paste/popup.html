@@ -34,7 +34,6 @@
       <section id="tab-extract" class="tab-panel active">
         <!-- Format Selection -->
         <div class="panel-section">
-          <label class="section-label">Target Format</label>
           <div class="format-toggle">
             <button class="format-pill active" data-format="text">Text</button>
             <button class="format-pill" data-format="markdown">MD</button>
@@ -43,27 +42,28 @@
           </div>
         </div>
 
-        <!-- Extraction Options -->
-        <div class="options-panel">
-          <div class="option-row">
-            <label for="opt-images" class="option-label">Include images</label>
-            <input type="checkbox" id="opt-images" checked>
-          </div>
-          <div class="option-row">
-            <label for="opt-links" class="option-label">Preserve links</label>
-            <input type="checkbox" id="opt-links" checked>
-          </div>
+        <!-- Action Row (Primary Copy + Picker) -->
+        <div class="action-row">
+          <button id="btn-copy" class="btn-primary"><i class="bx bx-copy"></i> Copy Page</button>
+          <button id="btn-picker" class="btn-picker" title="Select Element to Copy"><i class="bx bx-target-lock"></i></button>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="button-stack">
-          <button id="btn-copy" class="btn-primary"><i class="bx bx-copy"></i> Copy Current Page</button>
-          <button id="btn-picker" class="btn-picker"><i class="bx bx-target-lock"></i> Select Element to Copy</button>
-        </div>
-
+        <!-- Secondary Actions (Download + PDF) -->
         <div class="action-grid">
-          <button id="btn-download" class="btn-secondary"><i class="bx bx-download"></i> Download Text</button>
-          <button id="btn-pdf" class="btn-secondary"><i class="bx bx-file-pdf"></i> Save as PDF</button>
+          <button id="btn-download" class="btn-secondary"><i class="bx bx-download"></i> Download</button>
+          <button id="btn-pdf" class="btn-secondary"><i class="bx bx-file-pdf"></i> Save PDF</button>
+        </div>
+
+        <!-- Inline Extraction Options -->
+        <div class="options-inline">
+          <label class="option-inline-item">
+            <input type="checkbox" id="opt-images" checked>
+            <span>Include Images</span>
+          </label>
+          <label class="option-inline-item">
+            <input type="checkbox" id="opt-links" checked>
+            <span>Preserve Links</span>
+          </label>
         </div>
       </section>
 

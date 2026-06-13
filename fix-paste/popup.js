@@ -183,11 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btnCopy.innerHTML = '<i class="bx bx-check"></i> Copied!';
       showStatus('Copied clean content successfully.');
       setTimeout(() => {
-        btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Current Page';
+        btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Page';
         btnCopy.disabled = false;
       }, 1500);
     } catch (err) {
-      btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Current Page';
+      btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Page';
       btnCopy.disabled = false;
       showError(err.message);
     }
