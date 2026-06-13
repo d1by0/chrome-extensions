@@ -1,19 +1,20 @@
 :root {
-  --bg-color: #0c0f16; 
-  --panel-bg: #121824; 
-  --border-color: #1e293b; 
-  --text-primary: #f8fafc; 
-  --text-secondary: #94a3b8; 
+  --bg-color: #f8fafc; /* Clean slate white */
+  --panel-bg: #ffffff; /* Pure white panels */
+  --border-color: #e2e8f0; /* Soft border gray */
+  --text-primary: #0f172a; /* Deep slate dark text */
+  --text-secondary: #64748b; /* Cool slate gray secondary text */
+  
   --accent-color: #0035FE; /* Cobalt Blue */
   --accent-hover: #006EFF; /* Slate Blue */
-  --accent-soft: rgba(0, 53, 254, 0.12);
+  --accent-soft: rgba(0, 53, 254, 0.06);
   --accent-gradient: linear-gradient(135deg, #0035FE 0%, #00AFCA 100%);
   
   --danger-color: #ef4444;
   --danger-hover: #dc2626;
   
-  --btn-secondary-bg: #1e293b;
-  --btn-secondary-hover: #334155;
+  --btn-secondary-bg: #f1f5f9; /* Soft gray buttons */
+  --btn-secondary-hover: #e2e8f0;
   
   --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -32,7 +33,7 @@ body {
   font-family: var(--font-family);
   overflow-x: hidden;
   border: 1px solid var(--border-color);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -60,7 +61,7 @@ body {
   object-fit: cover;
   border-radius: 10px;
   border: 1.5px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 53, 254, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 53, 254, 0.1);
   background: var(--panel-bg);
 }
 
@@ -83,7 +84,7 @@ body {
 /* Tab Navigation */
 .tab-bar {
   display: flex;
-  background-color: #11141a;
+  background-color: #f1f5f9;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 4px;
@@ -101,6 +102,14 @@ body {
   cursor: pointer;
   border-radius: 8px;
   transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab-btn i {
+  font-size: 1rem;
 }
 
 .tab-btn:hover {
@@ -110,7 +119,7 @@ body {
 .tab-btn.active {
   background-color: var(--accent-color);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 53, 254, 0.2);
 }
 
 /* Tab Content Panels */
@@ -155,7 +164,7 @@ body {
 .format-toggle {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background-color: #11141a;
+  background-color: #f1f5f9;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 3px;
@@ -177,13 +186,14 @@ body {
 
 .format-pill:hover {
   color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .format-pill.active {
-  background-color: var(--btn-secondary-bg);
+  background-color: var(--panel-bg);
   color: var(--accent-color);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(0, 53, 254, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 53, 254, 0.05);
 }
 
 /* Options panel */
@@ -195,6 +205,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .option-row {
@@ -206,7 +217,7 @@ body {
 .option-label {
   font-size: 0.84rem;
   font-weight: 500;
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 /* Checkbox Switch styling */
@@ -215,7 +226,7 @@ input[type="checkbox"] {
   -webkit-appearance: none;
   width: 36px;
   height: 20px;
-  background-color: #334155;
+  background-color: #cbd5e1;
   border-radius: 20px;
   position: relative;
   cursor: pointer;
@@ -262,7 +273,7 @@ input[type="checkbox"]:checked::before {
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 53, 254, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -285,7 +296,7 @@ input[type="checkbox"]:checked::before {
   border: 1px dashed var(--accent-color);
   border-radius: 8px;
   background-color: var(--accent-soft);
-  color: #c7d2fe;
+  color: var(--accent-color);
   font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 600;
@@ -298,7 +309,7 @@ input[type="checkbox"]:checked::before {
 }
 
 .btn-picker:hover {
-  background-color: rgba(99, 102, 241, 0.25);
+  background-color: rgba(0, 53, 254, 0.12);
   border-style: solid;
 }
 
@@ -319,11 +330,15 @@ input[type="checkbox"]:checked::before {
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-secondary:hover {
   background-color: var(--btn-secondary-hover);
-  border-color: #475569;
+  border-color: #cbd5e1;
 }
 
 /* History Tab Elements */
@@ -335,6 +350,7 @@ input[type="checkbox"]:checked::before {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .search-wrapper {
@@ -347,7 +363,7 @@ input[type="checkbox"]:checked::before {
   width: 100%;
   padding: 8px 28px 8px 12px;
   border: 1px solid var(--border-color);
-  background-color: #0f1115;
+  background-color: var(--bg-color);
   color: var(--text-primary);
   border-radius: 8px;
   font-family: var(--font-family);
@@ -384,7 +400,7 @@ input[type="checkbox"]:checked::before {
 }
 
 .expiry-select {
-  background-color: #0f1115;
+  background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 4px 10px;
@@ -411,7 +427,7 @@ input[type="checkbox"]:checked::before {
 }
 .history-list::-webkit-scrollbar-track,
 .tabs-list::-webkit-scrollbar-track {
-  background: #11141a;
+  background: var(--bg-color);
   border-radius: 10px;
 }
 .history-list::-webkit-scrollbar-thumb,
@@ -439,10 +455,12 @@ input[type="checkbox"]:checked::before {
   gap: 8px;
   position: relative;
   transition: var(--transition-smooth);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .history-card:hover {
-  border-color: #3b4252;
+  border-color: rgba(0, 53, 254, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 53, 254, 0.04);
 }
 
 .history-card-header {
@@ -492,19 +510,19 @@ input[type="checkbox"]:checked::before {
 }
 
 .history-card-badge {
-  background-color: #1e1e24;
-  border: 1px solid #2e2e38;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.65rem;
   font-weight: 600;
-  color: #818cf8;
+  color: var(--accent-color);
 }
 
 .history-card-badge.expiry-near {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.3);
-  background-color: rgba(239, 68, 68, 0.08);
+  color: var(--danger-color);
+  border-color: rgba(239, 68, 68, 0.2);
+  background-color: rgba(239, 68, 68, 0.05);
 }
 
 .history-card-actions {
@@ -525,11 +543,19 @@ input[type="checkbox"]:checked::before {
   color: var(--text-primary);
   font-family: var(--font-family);
   transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-card-action i {
+  font-size: 0.8rem;
 }
 
 .btn-card-action:hover {
   background-color: var(--btn-secondary-hover);
-  border-color: #475569;
+  border-color: #cbd5e1;
 }
 
 .history-footer {
@@ -541,15 +567,19 @@ input[type="checkbox"]:checked::before {
   width: 100%;
   padding: 8px;
   border: none;
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.08);
+  color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.2);
   font-family: var(--font-family);
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 6px;
   cursor: pointer;
   transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-danger:hover {
@@ -599,7 +629,7 @@ input[type="checkbox"]:checked::before {
   gap: 10px;
   padding: 8px;
   border-radius: 6px;
-  background-color: #0d0f12;
+  background-color: var(--bg-color);
   border: 1px solid transparent;
   transition: var(--transition-smooth);
   cursor: pointer;
@@ -607,7 +637,7 @@ input[type="checkbox"]:checked::before {
 
 .tab-item-row:hover {
   border-color: var(--border-color);
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: var(--btn-secondary-bg);
 }
 
 .tab-item-checkbox {
@@ -619,7 +649,7 @@ input[type="checkbox"]:checked::before {
   border-radius: 4px;
   cursor: pointer;
   position: relative;
-  background-color: #1c202a;
+  background-color: var(--panel-bg);
 }
 
 .tab-item-checkbox:checked {

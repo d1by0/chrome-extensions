@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateDownloadButtonLabel() {
     const ext = activeFormat === 'markdown' ? 'MD' : activeFormat.toUpperCase();
-    btnDownload.textContent = `Download ${ext}`;
+    btnDownload.innerHTML = `<i class="bx bx-download"></i> Download ${ext}`;
   }
 
   // --- Tab Navigation ---
@@ -144,8 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Copy Current Page
   btnCopy.addEventListener('click', async () => {
-    const originalText = btnCopy.textContent;
-    btnCopy.textContent = 'Extracting & Copying...';
+    btnCopy.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Extracting...';
     btnCopy.disabled = true;
 
     try {
@@ -181,14 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      btnCopy.textContent = 'Copied!';
+      btnCopy.innerHTML = '<i class="bx bx-check"></i> Copied!';
       showStatus('Copied clean content successfully.');
       setTimeout(() => {
-        btnCopy.textContent = originalText;
+        btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Current Page';
         btnCopy.disabled = false;
       }, 1500);
     } catch (err) {
-      btnCopy.textContent = originalText;
+      btnCopy.innerHTML = '<i class="bx bx-copy"></i> Copy Current Page';
       btnCopy.disabled = false;
       showError(err.message);
     }
@@ -218,8 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Download Text File
   btnDownload.addEventListener('click', async () => {
-    const originalText = btnDownload.textContent;
-    btnDownload.textContent = 'Preparing...';
+    btnDownload.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Preparing...';
     btnDownload.disabled = true;
 
     try {
@@ -250,15 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showError(err.message);
     } finally {
-      btnDownload.textContent = originalText;
+      updateDownloadButtonLabel();
       btnDownload.disabled = false;
     }
   });
 
   // Save PDF
   btnPDF.addEventListener('click', async () => {
-    const originalText = btnPDF.textContent;
-    btnPDF.textContent = 'Preparing PDF...';
+    btnPDF.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Preparing PDF...';
     btnPDF.disabled = true;
 
     try {
@@ -270,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showError(err.message);
     } finally {
-      btnPDF.textContent = originalText;
+      btnPDF.innerHTML = '<i class="bx bx-file-pdf"></i> Save as PDF';
       btnPDF.disabled = false;
     }
   });
@@ -357,16 +354,16 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `
           <div class="history-card-header">
             <span class="history-card-title" title="${item.title}">${item.title}</span>
-            <button class="btn-card-delete" data-id="${item.id}" title="Remove Clip">×</button>
+            <button class="btn-card-delete" data-id="${item.id}" title="Remove Clip"><i class="bx bx-x"></i></button>
           </div>
           <div class="history-card-meta">
             <span class="history-card-domain" title="${item.url}">${domain}</span>
             <span class="history-card-badge ${isNear ? 'expiry-near' : ''}">${remainingText}</span>
           </div>
           <div class="history-card-actions">
-            <button class="btn-card-action copy-text" data-id="${item.id}">Copy Text</button>
-            <button class="btn-card-action copy-md" data-id="${item.id}">Copy MD</button>
-            <button class="btn-card-action download-btn" data-id="${item.id}">Download</button>
+            <button class="btn-card-action copy-text" data-id="${item.id}"><i class="bx bx-copy"></i> Text</button>
+            <button class="btn-card-action copy-md" data-id="${item.id}"><i class="bx bx-file"></i> MD</button>
+            <button class="btn-card-action download-btn" data-id="${item.id}"><i class="bx bx-download"></i> Save</button>
           </div>
         `;
 
@@ -462,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateBatchButtonState() {
     const checkedCount = batchTabsList.querySelectorAll('.tab-item-checkbox:checked').length;
     btnBatchDownload.disabled = checkedCount === 0;
-    btnBatchDownload.textContent = checkedCount > 0 ? `Compile & Download (${checkedCount} tabs)` : 'Compile & Download (.md)';
+    btnBatchDownload.innerHTML = checkedCount > 0 ? `<i class="bx bx-folder-plus"></i> Compile & Download (${checkedCount} tabs)` : '<i class="bx bx-folder-plus"></i> Compile & Download (.md)';
   }
 
   async function loadBatchTabs() {
@@ -511,8 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkboxes = batchTabsList.querySelectorAll('.tab-item-checkbox:checked');
     if (checkboxes.length === 0) return;
 
-    const originalText = btnBatchDownload.textContent;
-    btnBatchDownload.textContent = 'Processing Tabs...';
+    btnBatchDownload.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing Tabs...';
     btnBatchDownload.disabled = true;
 
     try {
@@ -574,7 +570,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showError(err.message);
     } finally {
-      btnBatchDownload.textContent = originalText;
       updateBatchButtonState();
     }
   });

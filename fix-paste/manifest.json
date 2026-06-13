@@ -16,7 +16,13 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": "assets/fix_paste.avif"
+  },
+  "icons": {
+    "16": "assets/fix_paste.avif",
+    "48": "assets/fix_paste.avif",
+    "128": "assets/fix_paste.avif"
   },
   "commands": {
     "quick-extract": {
