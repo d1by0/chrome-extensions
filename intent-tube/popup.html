@@ -26,10 +26,24 @@
     <main class="app-content">
       <!-- Section: Toggles -->
       <section class="settings-section">
+        <!-- Master Enable Toggle -->
+        <div class="control-card master-card" style="border-bottom: 2px solid var(--accent-color);">
+          <div class="control-info">
+            <span class="control-icon" style="font-size: 15px;">🔌</span>
+            <div class="control-details">
+              <h2 style="font-weight: 600;">Enable IntentTube</h2>
+              <p>Turn all focus features on or off</p>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-extension" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
         <!-- Intent Gate Toggle -->
         <div class="control-card">
           <div class="control-info">
-            <span class="control-icon">🧘</span>
             <div class="control-details">
               <h2>Intent Gate</h2>
               <p>Block home feed recommendations</p>

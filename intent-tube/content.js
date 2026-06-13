@@ -1,5 +1,6 @@
 // State Management
 let settings = {
+  extensionEnabled: true,
   intentGate: true,
   cleanTheater: true,
   zenTimer: true,
@@ -12,8 +13,27 @@ let secondsRemaining = null;
 let currentVideoUrl = '';
 let isInitialized = false;
 
+// Rotating Focus Quotes
+const FOCUS_QUOTES = [
+  "Focus is a muscle, and you are building it right now.",
+  "Your attention is your most valuable asset. Guard it carefully.",
+  "Deep work is the superpower of the 21st century.",
+  "Don't count the minutes; make the minutes count.",
+  "The difference between average and exceptional is focus."
+];
+
+// Clickable Search Suggestions
+const SEARCH_SUGGESTIONS = [
+  "Next.js 15 Deep Dive",
+  "CSS Flexbox & Grid Guide",
+  "TypeScript Tutorial",
+  "Mindful Breathing Meditation",
+  "History of Web Development"
+];
+
 // Load settings from storage before starting anything
 chrome.storage.local.get({
+  extensionEnabled: true,
   intentGate: true,
   cleanTheater: true,
   zenTimer: true,
@@ -43,6 +63,8 @@ function init() {
   // Track SPA navigation and periodically verify elements
   let lastUrl = location.href;
   setInterval(() => {
+    if (!settings.extensionEnabled) return;
+    
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       handlePageChange();
@@ -58,6 +80,27 @@ function init() {
 }
 
 function applySettings() {
+  // If master toggle is disabled, clean up everything immediately and return
+  if (!settings.extensionEnabled) {
+    document.body.classList.remove('it-theater-active');
+    document.body.classList.remove('it-gate-active');
+    
+    const placeholder = document.querySelector('.it-home-placeholder');
+    if (placeholder) placeholder.remove();
+    
+    const toggleBtn = document.querySelector('.it-notes-toggle-btn');
+    if (toggleBtn) toggleBtn.remove();
+    
+    const sidebar = document.querySelector('.it-notes-sidebar');
+    if (sidebar) sidebar.remove();
+    
+    removeTimerBadge();
+    removeBreakModal();
+    clearInterval(activeTimerInterval);
+    activeTimerInterval = null;
+    return;
+  }
+
   // 1. Theater mode
   if (settings.cleanTheater) {
     document.body.classList.add('it-theater-active');
@@ -76,6 +119,7 @@ function applySettings() {
 }
 
 function handlePageChange() {
+  if (!settings.extensionEnabled) return;
   handleIntentGate();
   updateZenTimerState();
   ensureUIElements();
@@ -85,6 +129,8 @@ function handlePageChange() {
 // 1. Intent Gate (Home Page Feed Hiding)
 // ==========================================
 function handleIntentGate() {
+  if (!settings.extensionEnabled) return;
+
   const isHome = location.pathname === '/' || location.pathname === '/index.html';
   const placeholderExists = document.querySelector('.it-home-placeholder');
 
@@ -108,6 +154,14 @@ function injectIntentPlaceholder() {
   const homeContainer = document.querySelector('ytd-browse[page-subtype="home"]');
   if (!homeContainer) return;
 
+  // Select a random quote
+  const randomQuote = FOCUS_QUOTES[Math.floor(Math.random() * FOCUS_QUOTES.length)];
+
+  // Create suggestions HTML
+  const suggestionsHtml = SEARCH_SUGGESTIONS.map(term => 
+    `<span class="it-home-suggestion-chip" data-query="${term}">${term}</span>`
+  ).join('');
+
   const placeholder = document.createElement('div');
   placeholder.className = 'it-home-placeholder';
   placeholder.innerHTML = `
@@ -117,8 +171,15 @@ function injectIntentPlaceholder() {
       <input type="text" class="it-home-search-input" placeholder="What are you here to watch or learn?" required autofocus>
       <button type="submit" class="it-home-search-btn">Search</button>
     </form>
+    <div class="it-home-suggestions">
+      ${suggestionsHtml}
+    </div>
+    <div class="it-home-quote">
+      "${randomQuote}"
+    </div>
   `;
 
+  // Bind form search
   const form = placeholder.querySelector('.it-home-search-box');
   const input = placeholder.querySelector('.it-home-search-input');
 
@@ -130,6 +191,14 @@ function injectIntentPlaceholder() {
     }
   });
 
+  // Bind search suggestions click
+  placeholder.querySelectorAll('.it-home-suggestion-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const query = chip.dataset.query;
+      window.location.href = `/results?search_query=${encodeURIComponent(query)}`;
+    });
+  });
+
   homeContainer.appendChild(placeholder);
 }
 
@@ -137,6 +206,8 @@ function injectIntentPlaceholder() {
 // 2. Notes Sidebar & Dynamic Watch Elements
 // ==========================================
 function ensureUIElements() {
+  if (!settings.extensionEnabled) return;
+
   const isWatch = location.pathname === '/watch';
   let toggleBtn = document.querySelector('.it-notes-toggle-btn');
   let sidebar = document.querySelector('.it-notes-sidebar');
@@ -162,6 +233,7 @@ function ensureUIElements() {
 }
 
 function injectNotesUI() {
+  if (!settings.extensionEnabled) return;
   // Prevent double injection
   if (document.querySelector('.it-notes-sidebar')) return;
 
@@ -296,6 +368,8 @@ function updateZenTimerState() {
   activeTimerInterval = null;
   removeBreakModal();
 
+  if (!settings.extensionEnabled) return;
+
   const isWatch = location.pathname === '/watch';
   if (!settings.zenTimer || !isWatch) {
     removeTimerBadge();
@@ -314,7 +388,7 @@ function updateZenTimerState() {
     const video = document.querySelector('video');
     const isWatchPage = location.pathname === '/watch';
     
-    if (!isWatchPage) {
+    if (!isWatchPage || !settings.extensionEnabled) {
       clearInterval(activeTimerInterval);
       activeTimerInterval = null;
       removeTimerBadge();
@@ -334,14 +408,14 @@ function updateZenTimerState() {
 }
 
 function resetTimerForNewVideo() {
-  if (settings.zenTimer) {
+  if (settings.zenTimer && settings.extensionEnabled) {
     secondsRemaining = settings.timerDuration * 60;
     updateTimerBadge();
   }
 }
 
 function injectTimerBadge() {
-  if (!settings.zenTimer) return;
+  if (!settings.zenTimer || !settings.extensionEnabled) return;
   
   const player = document.querySelector('.html5-video-player');
   if (!player) return;

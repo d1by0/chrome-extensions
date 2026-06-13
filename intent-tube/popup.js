@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
+  const toggleExtension = document.getElementById('toggle-extension');
   const toggleIntentGate = document.getElementById('toggle-intent-gate');
   const toggleCleanTheater = document.getElementById('toggle-clean-theater');
   const toggleZenTimer = document.getElementById('toggle-zen-timer');
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Default settings
   const defaults = {
+    extensionEnabled: true,
     intentGate: true,
     cleanTheater: true,
     zenTimer: true,
@@ -21,10 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load settings
   chrome.storage.local.get(defaults, (settings) => {
+    toggleExtension.checked = settings.extensionEnabled;
     toggleIntentGate.checked = settings.intentGate;
     toggleCleanTheater.checked = settings.cleanTheater;
     toggleZenTimer.checked = settings.zenTimer;
     
+    // Disable inputs if extension is globally disabled
+    updateSubControlsState(settings.extensionEnabled);
+
     if (!settings.zenTimer) {
       timerConfigPanel.classList.add('disabled');
     }
@@ -34,6 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load notes
     renderNotes(settings.sessionNotes);
+  });
+
+  // Master Toggle Listener
+  toggleExtension.addEventListener('change', (e) => {
+    const isEnabled = e.target.checked;
+    chrome.storage.local.set({ extensionEnabled: isEnabled });
+    updateSubControlsState(isEnabled);
   });
 
   // Toggles Event Listeners
@@ -48,12 +61,36 @@ document.addEventListener('DOMContentLoaded', () => {
   toggleZenTimer.addEventListener('change', (e) => {
     const isEnabled = e.target.checked;
     chrome.storage.local.set({ zenTimer: isEnabled });
-    if (isEnabled) {
+    if (isEnabled && toggleExtension.checked) {
       timerConfigPanel.classList.remove('disabled');
     } else {
       timerConfigPanel.classList.add('disabled');
     }
   });
+
+  // Helper: Disable/enable child inputs depending on master state
+  function updateSubControlsState(isEnabled) {
+    const elementsToToggle = [toggleIntentGate, toggleCleanTheater, toggleZenTimer, customMinutes];
+    elementsToToggle.forEach(el => {
+      el.disabled = !isEnabled;
+    });
+
+    presetBtns.forEach(btn => {
+      if (!isEnabled) {
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.5';
+      } else {
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+      }
+    });
+
+    if (!isEnabled || !toggleZenTimer.checked) {
+      timerConfigPanel.classList.add('disabled');
+    } else {
+      timerConfigPanel.classList.remove('disabled');
+    }
+  }
 
   // Preset buttons logic
   presetBtns.forEach(btn => {

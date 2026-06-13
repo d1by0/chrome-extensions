@@ -76,6 +76,40 @@ body.it-gate-active ytd-browse[page-subtype="home"] #primary {
   background: #ff0000;
 }
 
+.it-home-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.it-home-suggestion-chip {
+  background: var(--yt-spec-badge-chip-background, #212121);
+  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.05));
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary, #aaa);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.it-home-suggestion-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--yt-spec-text-primary, #fff);
+}
+
+.it-home-quote {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--yt-spec-text-disabled, #717171);
+  margin-top: 36px;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
 @keyframes itFadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
