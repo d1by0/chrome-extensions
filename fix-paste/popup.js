@@ -34,18 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Common Elements
   const statusText = document.getElementById('status-text');
+  const optTelemetry = document.getElementById('opt-telemetry');
 
   // --- Initial Load & Preferences ---
   chrome.storage.local.get({
     includeImages: true,
     preserveLinks: true,
     format: 'text',
-    historyExpiryMinutes: 60
+    historyExpiryMinutes: 60,
+    telemetryEnabled: true
   }, (items) => {
     optImages.checked = items.includeImages;
     optLinks.checked = items.preserveLinks;
     activeFormat = items.format;
     historyExpiry.value = items.historyExpiryMinutes;
+    optTelemetry.checked = items.telemetryEnabled;
 
     // Highlight initial format pill
     formatPills.forEach(pill => {
@@ -69,6 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ preserveLinks: optLinks.checked });
   });
 
+  optTelemetry.addEventListener('change', () => {
+    chrome.storage.local.set({ telemetryEnabled: optTelemetry.checked });
+    trackEvent('telemetry_toggled', { enabled: optTelemetry.checked });
+  });
+
   formatPills.forEach(pill => {
     pill.addEventListener('click', () => {
       formatPills.forEach(p => p.classList.remove('active'));
@@ -76,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
       activeFormat = pill.dataset.format;
       chrome.storage.local.set({ format: activeFormat });
       updateDownloadButtonLabel();
+      trackEvent('format_selected', { format: activeFormat });
     });
   });
 
@@ -171,6 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Save to History via message to Background Script
       chrome.runtime.sendMessage({ action: 'saveHistory', data: content });
 
+      // Telemetry
+      trackEvent('extract_triggered', {
+        method: 'popup_copy',
+        format: activeFormat,
+        url_domain: content.url ? new URL(content.url).hostname : ''
+      });
+
       // Trigger floating overlay feedback on the host page
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
@@ -198,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab) return;
+
+      trackEvent('picker_used', { action: 'started' });
 
       // Inject script first
       await chrome.scripting.executeScript({
@@ -508,6 +526,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkboxes = batchTabsList.querySelectorAll('.tab-item-checkbox:checked');
     if (checkboxes.length === 0) return;
 
+    trackEvent('batch_download_triggered', {
+      tabs_count: checkboxes.length
+    });
+
     btnBatchDownload.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing Tabs...';
     btnBatchDownload.disabled = true;
 
@@ -593,5 +615,47 @@ document.addEventListener('DOMContentLoaded', () => {
       statusText.style.color = '';
       statusText.textContent = 'Ready to extract page content.';
     }, 4500);
+  }
+
+  // --- Telemetry / Analytics Manager ---
+  // To track live stats, enter your free Mixpanel Project Token below:
+  const TELEMETRY_TOKEN = ''; // e.g., 'your-mixpanel-token-here'
+
+  function trackEvent(eventName, properties = {}) {
+    const telemetryCheckbox = document.getElementById('opt-telemetry');
+    if (!telemetryCheckbox || !telemetryCheckbox.checked) return;
+
+    // Log locally in development/console so the creator can see events firing
+    console.log(`[Telemetry Event] ${eventName}:`, properties);
+
+    if (!TELEMETRY_TOKEN) return;
+
+    const payload = {
+      event: eventName,
+      properties: {
+        token: TELEMETRY_TOKEN,
+        distinct_id: getAnonymousUserId(),
+        time: Date.now(),
+        ...properties
+      }
+    };
+
+    fetch('https://api.mixpanel.com/track', {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    }).catch(err => console.warn('Telemetry transmission failed:', err));
+  }
+
+  function getAnonymousUserId() {
+    let id = localStorage.getItem('anonymous_client_id');
+    if (!id) {
+      id = 'client_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      localStorage.setItem('anonymous_client_id', id);
+    }
+    return id;
   }
 });
