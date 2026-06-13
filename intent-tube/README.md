@@ -4,8 +4,23 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 
 ---
 
-## Version
-- **Current Version**: 1.0.0 (Core Focus Engine)
+## Version & Changelog
+- **Current Version**: 1.1.0 (Smart Suggestions & Clean Refactor)
+
+### Release History
+
+#### v1.1.0 (Current) - Smart Suggestions & Clean Refactor
+- **Smart Autocomplete**: Intercepts YouTube's autocomplete search queries and injects focus-driven suggestions (e.g. cinematography, coding, design) when matching intent keywords are typed.
+- **Master Toggle**: Added a global "Enable IntentTube" switch inside the popup header, restoring YouTube to its native state instantly when toggled off.
+- **Emoji-Free Vector UI**: Replaced all emojis in the content script with inline SVGs (Search, Timer, Pencil, Bulb) to bypass CSP issues, and linked Boxicons in the popup.
+- **Performance Optimization**: Swapped out heavy DOM MutationObservers for a passive interval loop to prevent page freezing and layout recursion loops.
+- **PNG Icon Generation**: Created properly formatted PNG assets (`icon16.png`, `icon48.png`, `icon128.png`) from the high-res AVIF logo to fix Chrome Extension bar loading.
+
+#### v1.0.0 - Core Focus Engine
+- **Intent Gate**: Hides the home recommendation feed behind a centered search input.
+- **Clean Theater Mode**: Collapses related video columns and comments, centering the player workspace.
+- **Study Notes**: Adds a collapsible sidebar drawer capturing timestamped notes with click-to-seek support.
+- **Zen Timer**: Integrates a focus countdown badge that pauses playback and blurs the screen when time expires.
 
 ---
 
