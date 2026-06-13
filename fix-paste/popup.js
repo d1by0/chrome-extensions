@@ -629,6 +629,18 @@ document.addEventListener('DOMContentLoaded', () => {
         opt_out_tracking_by_default: false,
         api_method: 'GET' // Force GET request to bypass chrome-extension CORS preflight limitations
       });
+
+      // Generate anonymous ID and register user profile to unlock "Users" verification circle in Mixpanel
+      let randomUserId = localStorage.getItem('anonymous_client_id');
+      if (!randomUserId) {
+        randomUserId = 'client_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        localStorage.setItem('anonymous_client_id', randomUserId);
+      }
+      mixpanel.identify(randomUserId);
+      mixpanel.people.set({
+        "$created": new Date().toISOString(),
+        "Client Type": "Chrome Extension"
+      });
     } catch (e) {
       console.warn('Mixpanel initialization failed:', e);
     }
