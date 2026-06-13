@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "IntentTube",
+  "version": "1.0.0",
+  "description": "Turn passive watching into purposeful viewing. Distraction-free YouTube with an Intent Gate, Zen Timer, and timestamped notes.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/IntentTube_logo.avif",
+      "48": "assets/IntentTube_logo.avif",
+      "128": "assets/IntentTube_logo.avif"
+    }
+  },
+  "icons": {
+    "16": "assets/IntentTube_logo.avif",
+    "48": "assets/IntentTube_logo.avif",
+    "128": "assets/IntentTube_logo.avif"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/IntentTube_logo.avif"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ]
+}

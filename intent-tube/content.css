@@ -1,0 +1,403 @@
+/* ==========================================
+   IntentTube Global & Helper Classes
+   ========================================== */
+:root {
+  --it-gradient: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  --it-bg-dark: #09070f;
+  --it-card-bg: rgba(18, 14, 30, 0.85);
+  --it-border: rgba(255, 255, 255, 0.08);
+  --it-accent: #8b5cf6;
+  --it-glow: rgba(139, 92, 246, 0.35);
+  --it-text-primary: #f3f1f6;
+  --it-text-secondary: #a39eb9;
+}
+
+/* ==========================================
+   1. The Intent Gate (Anti-Binge Home Overlay)
+   ========================================== */
+body.it-gate-active ytd-browse[page-subtype="home"] {
+  display: none !important;
+}
+
+.it-gate-overlay {
+  position: fixed;
+  top: 56px; /* Below YouTube's top header */
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 56px);
+  background-color: var(--it-bg-dark);
+  background-image: 
+    radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.15), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(6, 182, 212, 0.08), transparent 50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.it-gate-content {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  animation: itFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.it-gate-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px var(--it-glow);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.it-gate-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+  color: var(--it-text-primary);
+}
+
+.it-gate-title span {
+  background: var(--it-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.it-gate-tagline {
+  font-size: 1.1rem;
+  color: var(--it-text-secondary);
+  margin-bottom: 36px;
+  font-weight: 400;
+}
+
+.it-gate-search-form {
+  display: flex;
+  background: var(--it-card-bg);
+  border: 1px solid var(--it-border);
+  border-radius: 50px;
+  padding: 6px 6px 6px 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  align-items: center;
+}
+
+.it-gate-search-form:focus-within {
+  border-color: var(--it-accent);
+  box-shadow: 0 0 20px var(--it-glow);
+}
+
+.it-gate-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--it-text-primary);
+  font-size: 1.1rem;
+  outline: none;
+  padding: 8px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.it-gate-search-input::placeholder {
+  color: rgba(163, 158, 185, 0.5);
+}
+
+.it-gate-search-btn {
+  background: var(--it-gradient);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.it-gate-search-btn:hover {
+  opacity: 0.9;
+}
+
+@keyframes itFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   2. Clean Theater Mode (Hides recommendations & comments)
+   ========================================== */
+body.it-theater-active ytd-watch-flexy #secondary,
+body.it-theater-active ytd-watch-flexy #comments,
+body.it-theater-active ytd-watch-flexy #chat,
+body.it-theater-active ytd-watch-flexy ytd-live-chat-frame {
+  display: none !important;
+}
+
+/* Hide Shorts Navigation Items */
+body.it-theater-active ytd-guide-entry-renderer:has(a[href^="/shorts"]),
+body.it-theater-active ytd-mini-guide-entry-renderer:has(a[href^="/shorts"]),
+body.it-theater-active ytd-guide-section-renderer:has(a[href^="/shorts"]) {
+  display: none !important;
+}
+
+/* Hides Shorts Shelf (e.g. on search results or home) */
+body.it-theater-active ytd-reel-shelf-renderer {
+  display: none !important;
+}
+
+/* Shift main video player centered when recommendations are hidden */
+body.it-theater-active ytd-watch-flexy[flexy] #primary {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  float: none !important;
+}
+
+/* ==========================================
+   3. Timestamped Notes Sidebar
+   ========================================== */
+.it-notes-sidebar {
+  position: fixed;
+  top: 56px;
+  right: -350px; /* Hidden by default */
+  width: 330px;
+  height: calc(100vh - 56px);
+  background: var(--it-card-bg);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--it-border);
+  z-index: 1000;
+  transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', sans-serif;
+  color: var(--it-text-primary);
+}
+
+.it-notes-sidebar.open {
+  right: 0;
+}
+
+.it-notes-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--it-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.it-notes-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--it-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.it-notes-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--it-text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.it-notes-input-area {
+  padding: 16px;
+  border-bottom: 1px solid var(--it-border);
+}
+
+.it-notes-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--it-border);
+  border-radius: 8px;
+  color: var(--it-text-primary);
+  padding: 10px;
+  font-size: 0.85rem;
+  resize: vertical;
+  outline: none;
+  min-height: 60px;
+  font-family: 'Inter', sans-serif;
+}
+
+.it-notes-input:focus {
+  border-color: var(--it-accent);
+}
+
+.it-notes-input-hint {
+  font-size: 0.7rem;
+  color: var(--it-text-muted);
+  margin-top: 6px;
+}
+
+.it-notes-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.it-notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.it-note-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--it-border);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.it-note-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.it-note-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.it-note-timestamp {
+  color: var(--it-accent);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.it-note-delete {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.it-note-delete:hover {
+  opacity: 1;
+}
+
+.it-note-text {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--it-text-secondary);
+}
+
+/* Notes Sidebar Floating Toggle Button */
+.it-notes-toggle-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--it-gradient);
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--it-glow);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.it-notes-toggle-btn:hover {
+  transform: scale(1.08);
+}
+
+/* ==========================================
+   4. Zen Timer Countdown Overlay & Blur
+   ========================================== */
+.it-timer-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(9, 7, 15, 0.85);
+  border: 1px solid var(--it-border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: var(--it-text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 10;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+}
+
+.it-blur-active video.html5-main-video {
+  filter: blur(25px) brightness(0.6) !important;
+  pointer-events: none !important;
+}
+
+.it-break-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(9, 7, 15, 0.75);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--it-text-primary);
+  font-family: 'Inter', sans-serif;
+  animation: itFadeUp 0.4s ease;
+  backdrop-filter: blur(10px);
+}
+
+.it-break-logo {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.it-break-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.it-break-subtitle {
+  color: var(--it-text-secondary);
+  font-size: 1rem;
+  margin-bottom: 24px;
+}
+
+.it-break-btn {
+  background: var(--it-gradient);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--it-glow);
+  transition: opacity 0.2s;
+}
+
+.it-break-btn:hover {
+  opacity: 0.9;
+}
