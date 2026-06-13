@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }, 600);
         };
 
-        const globalTimeout = setTimeout(triggerPrint, 2500);
+        const globalTimeout = setTimeout(triggerPrint, 1500);
 
         // Wait for all images to complete loading or fail
         const loadPromises = images.map(img => {
