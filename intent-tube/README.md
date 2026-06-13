@@ -5,11 +5,18 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 ---
 
 ## Version & Changelog
-- **Current Version**: 1.2.0 (Spell Correction, Interactive Timer, & Draggable Notes)
+- **Current Version**: 1.3.1 (Ad-Aware Timer Checks, Anti-Overlap, & Sidebar Video URLs)
 
 ### Release History
 
-#### v1.2.0 (Current) - Spell Correction, Interactive Timer, & Draggable Notes
+#### v1.3.1 (Current) - Ad-Aware Timer Checks, Anti-Overlap, & Sidebar Video URLs
+- **Improved Ad-Aware Timer**: Refined Zen Focus Timer checks by querying the player container's `playing-mode` and checking for active ad-player overlays, ensuring it does not run before the video starts or during ads.
+- **Badge Positioning**: Positioned the player timer badge to `right: 110px` to avoid overlapping with YouTube's native top-right info card button.
+- **Sidebar Video URLs**: Added clear, clickable video URLs inside both the Study Notes sidebar header and the Study Block Summary container so the user understands exactly where their notes map.
+
+#### v1.3.0 - Ad Pause, Overlay Anti-Overlap, & Popup Video References
+
+#### v1.2.0 - Spell Correction, Interactive Timer, & Draggable Notes
 - **Draggable Notes Toggle**: Allows users to drag and position the floating pencil note button anywhere on the screen.
 - **English Autocorrect**: Automatically corrects common English spelling mistakes (e.g. `teh` -> `the`, `recieve` -> `receive`) inside the notes textarea upon hitting space.
 - **Interactive Zen Timer**: Adds click controls to the timer badge (`+5m` and `-5m` adjustment triggers) to modify duration directly from the video player.

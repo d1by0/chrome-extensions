@@ -147,16 +147,41 @@ document.addEventListener('DOMContentLoaded', () => {
     recentNotes.forEach(item => {
       const li = document.createElement('li');
       li.className = 'note-item';
+      li.style.display = 'flex';
+      li.style.flexDirection = 'column';
+      li.style.gap = '2px';
       
+      const metaLink = document.createElement('a');
+      metaLink.className = 'note-item-meta';
+      metaLink.href = item.videoUrl;
+      metaLink.target = '_blank';
+      metaLink.style.fontSize = '9px';
+      metaLink.style.color = 'var(--text-muted)';
+      metaLink.style.textDecoration = 'none';
+      metaLink.style.textOverflow = 'ellipsis';
+      metaLink.style.overflow = 'hidden';
+      metaLink.style.whiteSpace = 'nowrap';
+      metaLink.style.display = 'block';
+      metaLink.textContent = item.videoTitle || 'YouTube Video';
+      metaLink.title = `Watch video: ${item.videoTitle || ''}`;
+
+      const contentDiv = document.createElement('div');
+      contentDiv.style.display = 'flex';
+      contentDiv.style.alignItems = 'baseline';
+      contentDiv.style.gap = '4px';
+
       const timeSpan = document.createElement('span');
       timeSpan.className = 'note-time';
       timeSpan.textContent = `[${item.timestamp}]`;
       
       const textSpan = document.createElement('span');
-      textSpan.textContent = ` ${item.noteText}`;
+      textSpan.textContent = item.noteText;
       
-      li.appendChild(timeSpan);
-      li.appendChild(textSpan);
+      contentDiv.appendChild(timeSpan);
+      contentDiv.appendChild(textSpan);
+      
+      li.appendChild(metaLink);
+      li.appendChild(contentDiv);
       notesList.appendChild(li);
     });
   }

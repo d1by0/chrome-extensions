@@ -452,6 +452,10 @@ function injectNotesUI() {
       <h3>Study Notes</h3>
       <button class="it-notes-close-btn">✕</button>
     </div>
+    <div class="it-notes-video-info" style="padding: 8px 14px; font-size: 11px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)); display: flex; flex-direction: column; gap: 2px;">
+      <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO URL:</span>
+      <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block;" title="Click to open video link"></a>
+    </div>
     <div class="it-notes-input-area">
       <textarea class="it-notes-input" placeholder="Type a note and press Enter..."></textarea>
       <div class="it-notes-input-hint">Note will save automatically with the video timestamp</div>
@@ -549,6 +553,13 @@ function renderNotesList() {
   const currentBaseUrl = location.href.split('&')[0];
   const currentVideoNotes = settings.sessionNotes.filter(n => n.videoUrl === currentBaseUrl);
 
+  // Update video info link in sidebar header
+  const videoLinkEl = document.querySelector('.it-current-video-link');
+  if (videoLinkEl) {
+    videoLinkEl.href = currentBaseUrl;
+    videoLinkEl.textContent = currentBaseUrl;
+  }
+
   if (currentVideoNotes.length === 0) {
     list.innerHTML = `<li style="text-align: center; color: var(--yt-spec-text-secondary, #aaa); font-size: 12px; margin-top: 24px;">No notes for this video yet.</li>`;
     const summaryContainer = document.querySelector('.it-notes-summary-container');
@@ -597,9 +608,14 @@ function renderNotesSummary(notes) {
     return `<li>At ${n.timestamp}: ${escapeHtml(cleanText)}</li>`;
   }).join('');
 
+  const currentBaseUrl = location.href.split('&')[0];
+
   container.innerHTML = `
     <div class="it-notes-summary-box">
       <div class="it-notes-summary-title">Study Block Summary</div>
+      <div style="margin-bottom: 6px; font-size: 10px; word-break: break-all; color: var(--yt-spec-text-secondary, #aaa);">
+        Source URL: <a href="${currentBaseUrl}" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none;">${currentBaseUrl}</a>
+      </div>
       <div>Notes taken: <strong>${notes.length} key points</strong></div>
       <ul style="margin-top: 6px; padding-left: 12px; list-style-type: disc;">
         ${highlights}
@@ -645,6 +661,7 @@ function updateZenTimerState() {
   // Watch video playback
   activeTimerInterval = setInterval(() => {
     const video = document.querySelector('video');
+    const player = document.querySelector('.html5-video-player');
     const isWatchPage = location.pathname === '/watch';
     
     if (!isWatchPage || !settings.extensionEnabled) {
@@ -655,8 +672,20 @@ function updateZenTimerState() {
       return;
     }
 
-    // Only tick down if the video is actively playing
-    if (video && !video.paused && !video.ended) {
+    // Check if an ad is playing
+    const isAd = player && (
+      player.classList.contains('ad-showing') || 
+      player.classList.contains('ad-interrupting') || 
+      !!player.querySelector('.ytp-ad-player-overlay') ||
+      !!player.querySelector('.ytp-ad-overlay-container') ||
+      !!player.querySelector('.video-ads.ytp-ad-module:not(:empty)')
+    );
+
+    // Check if video is actively playing (using player class playing-mode for accuracy)
+    const isPlaying = player && player.classList.contains('playing-mode');
+
+    // Only tick down if the video is actively playing and not an ad
+    if (video && isPlaying && !video.paused && !video.ended && !isAd) {
       if (secondsRemaining > 0) {
         secondsRemaining--;
         updateTimerBadge();
