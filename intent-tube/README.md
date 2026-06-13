@@ -15,7 +15,7 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 - **Interactive Zen Timer**: Adds click controls to the timer badge (`+5m` and `-5m` adjustment triggers) to modify duration directly from the video player.
 - **Intelligent Timestamping**: Captures note timestamps the exact moment writing *starts* rather than when hitting enter.
 - **Dynamic Summary Block**: Automatically generates a bulleted study summary card detailing highlights and note counts inside the sidebar.
-- **Trending Search Badges**: Intercepts queries to display matching trending topics decorated with a fire vector icon.
+- **Dynamic Trending Badges**: Automatically decorates the top 2 popular autocomplete suggestions returned directly from YouTube's API with a fire vector icon, ensuring suggestions are fully real and matching.
 
 #### v1.1.0 - Smart Suggestions & Clean Refactor
 - **Smart Autocomplete**: Intercepts YouTube's autocomplete search queries and injects focus-driven suggestions (e.g. cinematography, coding, design) when matching intent keywords are typed.

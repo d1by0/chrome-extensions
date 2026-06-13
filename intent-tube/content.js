@@ -33,7 +33,7 @@ const AUTOCORRECT_MAP = {
   "its": "it's"
 };
 
-// Context-Aware Intent Suggestions Map
+// Context-Aware Intent Suggestions Map (Triggers on word boundaries)
 const INTENT_SUGGESTIONS = {
   "cinematography": [
     "best cinematography techniques for beginners",
@@ -66,14 +66,6 @@ const INTENT_SUGGESTIONS = {
     "lighting basics for portrait photography"
   ]
 };
-
-// Trending search topics
-const TRENDING_TOPICS = [
-  "Next.js 15 App Router Tutorial",
-  "Solo Filmmaking Tips",
-  "Clean Architecture Coding Guidelines",
-  "Cinematic Lighting Setup Guide"
-];
 
 // SVG Assets
 const SVG_SEARCH = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="it-autocomplete-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
@@ -239,48 +231,40 @@ function injectIntentPlaceholder() {
       return;
     }
 
-    // Check for context-aware focus suggestions
+    // Check for context-aware focus suggestions (Strict Word Boundary check)
     let contextualList = [];
     for (const key in INTENT_SUGGESTIONS) {
-      if (query.includes(key) || key.includes(query)) {
+      const regex = new RegExp(`\\b${key}\\b`, 'i');
+      if (regex.test(query)) {
         contextualList = INTENT_SUGGESTIONS[key];
         break;
       }
     }
-
-    // Check for trending topics
-    let trendingList = [];
-    TRENDING_TOPICS.forEach(topic => {
-      if (topic.toLowerCase().includes(query)) {
-        trendingList.push(topic);
-      }
-    });
 
     fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`)
       .then(r => r.json())
       .then(data => {
         const standardSuggestions = data[1] || [];
         
-        // Build hybrid suggestion items (Prioritize smart contextual guides, then trending fire items, then standard suggestions)
+        // Build hybrid suggestions:
+        // 1. Contextual guides (if triggered by word boundaries)
+        // 2. Dynamic top 1-2 standard suggestions decorated as "trending"
+        // 3. Normal search queries
         const combined = [];
+        
         contextualList.forEach(item => {
           combined.push({ text: item, type: 'contextual' });
         });
 
-        trendingList.forEach(item => {
+        standardSuggestions.forEach((item, idx) => {
           if (!combined.some(c => c.text.toLowerCase() === item.toLowerCase())) {
-            combined.push({ text: item, type: 'trending' });
-          }
-        });
-        
-        // Deduplicate and append standard suggestions
-        standardSuggestions.forEach(item => {
-          if (!combined.some(c => c.text.toLowerCase() === item.toLowerCase())) {
-            combined.push({ text: item, type: 'standard' });
+            // Decorate top 2 elements from YouTube's own suggestions as trending
+            const itemType = (idx < 2) ? 'trending' : 'standard';
+            combined.push({ text: item, type: itemType });
           }
         });
 
-        currentSuggestions = combined.slice(0, 7); // Keep top 7 total items
+        currentSuggestions = combined.slice(0, 6); // Keep top 6 total items
         activeIndex = -1;
 
         if (currentSuggestions.length === 0) {
