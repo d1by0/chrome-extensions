@@ -993,15 +993,10 @@ function renderSummaryText(text, container) {
 
 async function getYouTubeTranscript() {
   try {
-    // Fetch player response
+    // Fetch player response by injecting inject.js (bypasses CSP restrictions)
     const playerResponse = await new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.textContent = `
-        (() => {
-          const response = window.ytInitialPlayerResponse;
-          window.postMessage({ type: 'YT_PLAYER_RESPONSE', data: response }, '*');
-        })();
-      `;
+      script.src = chrome.runtime.getURL('inject.js');
       const listener = (event) => {
         if (event.data && event.data.type === 'YT_PLAYER_RESPONSE') {
           window.removeEventListener('message', listener);
@@ -1010,8 +1005,12 @@ async function getYouTubeTranscript() {
         }
       };
       window.addEventListener('message', listener);
-      document.head.appendChild(script);
-      setTimeout(() => reject(new Error('Timeout getting YouTube player configurations')), 2500);
+      (document.head || document.documentElement).appendChild(script);
+      setTimeout(() => {
+        window.removeEventListener('message', listener);
+        script.remove();
+        reject(new Error('Timeout getting YouTube player configurations'));
+      }, 5000);
     });
 
     if (!playerResponse || !playerResponse.captions || !playerResponse.captions.playerCaptionsTracklistRenderer) {

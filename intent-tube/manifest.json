@@ -33,7 +33,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/IntentTube_logo.avif"],
+      "resources": ["assets/IntentTube_logo.avif", "inject.js"],
       "matches": ["*://*.youtube.com/*"]
     }
   ]
