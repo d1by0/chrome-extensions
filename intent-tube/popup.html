@@ -28,83 +28,134 @@
       </label>
     </header>
 
+    <!-- Navigation Tabs -->
+    <nav class="app-nav">
+      <button class="nav-tab active" data-target="settings-panel">
+        <i class="bx bx-cog"></i> Settings
+      </button>
+      <button class="nav-tab" data-target="analytics-panel">
+        <i class="bx bx-bar-chart-alt-2"></i> Analytics
+      </button>
+    </nav>
+
     <!-- Content -->
     <main class="app-content">
-      <!-- Section: Toggles -->
-      <section class="settings-section">
-        <!-- Intent Gate Toggle -->
-        <div class="control-card">
-          <div class="control-info">
-            <div class="control-details">
-              <h2><i class="bx bx-brain" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Intent Gate</h2>
-              <p>Block home feed recommendations</p>
-            </div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="toggle-intent-gate" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <!-- Clean Theater Toggle -->
-        <div class="control-card">
-          <div class="control-info">
-            <div class="control-details">
-              <h2><i class="bx bx-slideshow" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Clean Theater</h2>
-              <p>Collapse sidebar, comments, & Shorts</p>
-            </div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="toggle-clean-theater" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <!-- Zen Timer Toggle -->
-        <div class="control-card timer-card">
-          <div class="control-header-row">
+      <!-- PANEL 1: Settings Panel -->
+      <div id="settings-panel" class="tab-panel active">
+        <!-- Section: Toggles -->
+        <section class="settings-section">
+          <!-- Intent Gate Toggle -->
+          <div class="control-card">
             <div class="control-info">
               <div class="control-details">
-                <h2><i class="bx bx-time-five" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Zen Timer</h2>
-                <p>Prevent infinite session binging</p>
+                <h2><i class="bx bx-brain" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Intent Gate</h2>
+                <p>Block home feed recommendations</p>
               </div>
             </div>
             <label class="switch">
-              <input type="checkbox" id="toggle-zen-timer" checked>
+              <input type="checkbox" id="toggle-intent-gate" checked>
               <span class="slider"></span>
             </label>
           </div>
-          
-          <div class="timer-settings" id="timer-config-panel">
-            <div class="duration-selector">
-              <button class="preset-btn" data-minutes="15">15m</button>
-              <button class="preset-btn active" data-minutes="30">30m</button>
-              <button class="preset-btn" data-minutes="45">45m</button>
-              <button class="preset-btn" data-minutes="60">60m</button>
-              <input type="number" id="custom-minutes" min="1" max="180" placeholder="Custom" class="custom-time-input">
+
+          <!-- Clean Theater Toggle -->
+          <div class="control-card">
+            <div class="control-info">
+              <div class="control-details">
+                <h2><i class="bx bx-slideshow" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Clean Theater</h2>
+                <p>Collapse sidebar, comments, & Shorts</p>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-clean-theater" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Zen Timer Toggle -->
+          <div class="control-card timer-card">
+            <div class="control-header-row">
+              <div class="control-info">
+                <div class="control-details">
+                  <h2><i class="bx bx-time-five" style="font-size: 14px; margin-right: 4px; vertical-align: middle;"></i> Zen Timer</h2>
+                  <p>Prevent infinite session binging</p>
+                </div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-zen-timer" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            
+            <div class="timer-settings" id="timer-config-panel">
+              <div class="duration-selector">
+                <button class="preset-btn" data-minutes="15">15m</button>
+                <button class="preset-btn active" data-minutes="30">30m</button>
+                <button class="preset-btn" data-minutes="45">45m</button>
+                <button class="preset-btn" data-minutes="60">60m</button>
+                <input type="number" id="custom-minutes" min="1" max="180" placeholder="Custom" class="custom-time-input">
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Section: Quick Actions / Notes -->
-      <section class="notes-section">
-        <div class="section-header">
-          <h3>Recent Session Notes</h3>
-          <button id="btn-export-notes" class="action-btn-secondary">
-            <i class="bx bx-export" style="font-size: 12px;"></i> Export MD
-          </button>
-        </div>
-        
-        <div class="notes-preview-container">
-          <div class="empty-state" id="notes-empty-state">
-            <p>No notes taken in this session yet. Take notes inside YouTube to see them here.</p>
+        <!-- Section: Quick Actions / Notes -->
+        <section class="notes-section">
+          <div class="section-header">
+            <h3>Recent Session Notes</h3>
+            <button id="btn-export-notes" class="action-btn-secondary">
+              <i class="bx bx-export" style="font-size: 12px;"></i> Export MD
+            </button>
           </div>
-          <ul class="notes-list" id="notes-list" style="display: none;">
-            <!-- Notes injected dynamically -->
-          </ul>
+          
+          <div class="notes-preview-container">
+            <div class="empty-state" id="notes-empty-state">
+              <p>No notes taken in this session yet. Take notes inside YouTube to see them here.</p>
+            </div>
+            <ul class="notes-list" id="notes-list" style="display: none;">
+              <!-- Notes injected dynamically -->
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- PANEL 2: Analytics & API Panel -->
+      <div id="analytics-panel" class="tab-panel" style="display: none;">
+        <!-- Stat Grid widgets -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-value" id="stat-focus-time">0m</span>
+            <span class="stat-label">Focus Time</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-blocks">0</span>
+            <span class="stat-label">Bypassed Feeds</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-notes">0</span>
+            <span class="stat-label">Notes Logged</span>
+          </div>
         </div>
-      </section>
+
+        <!-- Weekly Focus Chart card -->
+        <div class="control-card chart-card" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+          <h2 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);"><i class="bx bx-stats" style="margin-right: 4px;"></i> Weekly Focus Time</h2>
+          <canvas id="analytics-chart" width="260" height="110" style="width: 100%; height: 110px;"></canvas>
+        </div>
+
+        <!-- Gemini API Key configuration card -->
+        <div class="control-card api-card" style="flex-direction: column; align-items: stretch; gap: 8px; margin-top: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <h2 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);"><i class="bx bx-key" style="margin-right: 4px;"></i> Gemini API Key</h2>
+            <p style="font-size: 10px; color: var(--text-muted); line-height: 1.3;">Used for fallback video summaries when local built-in AI is unavailable. Saved locally on your device.</p>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 4px;">
+            <input type="password" id="input-api-key" placeholder="Enter Gemini API Key..." class="api-key-input" style="flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); padding: 6px; font-size: 11px; outline: none;" />
+            <button id="btn-save-key" class="preset-btn" style="flex: 0 0 auto; width: 60px; padding: 6px 0;">Save</button>
+          </div>
+          <div id="save-status" style="font-size: 9px; font-weight: 500; text-align: right; display: none;"></div>
+        </div>
+      </div>
     </main>
 
     <!-- Footer -->

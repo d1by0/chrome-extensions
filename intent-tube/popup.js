@@ -11,6 +11,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const notesList = document.getElementById('notes-list');
   const btnExportNotes = document.getElementById('btn-export-notes');
 
+  // New elements
+  const navTabs = document.querySelectorAll('.nav-tab');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+  const inputApiKey = document.getElementById('input-api-key');
+  const btnSaveKey = document.getElementById('btn-save-key');
+  const saveStatus = document.getElementById('save-status');
+
+  // Tab switching
+  navTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      navTabs.forEach(t => t.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
   // Default settings
   const defaults = {
     extensionEnabled: true,
@@ -18,15 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
     cleanTheater: true,
     zenTimer: true,
     timerDuration: 30, // in minutes
-    sessionNotes: []
+    sessionNotes: [],
+    geminiApiKey: ''
   };
 
-  // Load settings
+  // Load settings & API key
   chrome.storage.local.get(defaults, (settings) => {
     toggleExtension.checked = settings.extensionEnabled;
     toggleIntentGate.checked = settings.intentGate;
     toggleCleanTheater.checked = settings.cleanTheater;
     toggleZenTimer.checked = settings.zenTimer;
+    inputApiKey.value = settings.geminiApiKey || '';
     
     // Disable inputs if extension is globally disabled
     updateSubControlsState(settings.extensionEnabled);
@@ -40,6 +59,50 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load notes
     renderNotes(settings.sessionNotes);
+  });
+
+  // Save Gemini API Key
+  btnSaveKey.addEventListener('click', () => {
+    const key = inputApiKey.value.trim();
+    chrome.storage.local.set({ geminiApiKey: key }, () => {
+      saveStatus.style.display = 'block';
+      saveStatus.className = 'success';
+      saveStatus.textContent = 'Saved successfully!';
+      setTimeout(() => { saveStatus.style.display = 'none'; }, 2000);
+    });
+  });
+
+  // Load & render Analytics Dashboard
+  chrome.storage.local.get({
+    analyticsData: { dailyMinutes: {}, dailyNotes: {}, blocksPrevented: {} }
+  }, (data) => {
+    const analytics = data.analyticsData;
+    const dailyMinutes = analytics.dailyMinutes || {};
+    const dailyNotes = analytics.dailyNotes || {};
+    const blocksPrevented = analytics.blocksPrevented || {};
+
+    // Calculate totals
+    const totalFocusMinutes = Object.values(dailyMinutes).reduce((a, b) => a + b, 0);
+    const totalBypasses = Object.values(blocksPrevented).reduce((a, b) => a + b, 0);
+    const totalNotes = Object.values(dailyNotes).reduce((a, b) => a + b, 0);
+
+    document.getElementById('stat-focus-time').textContent = `${totalFocusMinutes}m`;
+    document.getElementById('stat-blocks').textContent = totalBypasses;
+    document.getElementById('stat-notes').textContent = totalNotes;
+
+    // Render Weekly Focus Chart
+    const canvas = document.getElementById('analytics-chart');
+    if (canvas) {
+      const dates = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().slice(0, 10));
+      }
+      const values = dates.map(date => dailyMinutes[date] || 0);
+      const maxValue = Math.max(...values, 10);
+      drawChart(canvas, dates, values, maxValue);
+    }
   });
 
   // Master Toggle Listener
@@ -247,5 +310,76 @@ document.addEventListener('DOMContentLoaded', () => {
       return parts[0] * 60 + parts[1];
     }
     return null;
+  }
+
+  // Draw pure HTML5 Canvas bar chart
+  function drawChart(canvas, dates, values, maxValue) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const paddingLeft = 25;
+    const paddingRight = 10;
+    const paddingTop = 10;
+    const paddingBottom = 20;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    
+    // Draw horizontal grid lines
+    ctx.strokeStyle = '#2f2f2f';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= 3; i++) {
+      const y = paddingTop + (chartHeight * i) / 3;
+      ctx.moveTo(paddingLeft, y);
+      ctx.lineTo(width - paddingRight, y);
+    }
+    ctx.stroke();
+    
+    // Draw Y-axis labels
+    ctx.fillStyle = '#717171';
+    ctx.font = '8px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 3; i++) {
+      const val = Math.round(maxValue - (maxValue * i) / 3);
+      const y = paddingTop + (chartHeight * i) / 3;
+      ctx.fillText(val + 'm', paddingLeft - 4, y);
+    }
+    
+    // Draw bars
+    const barWidth = (chartWidth / dates.length) - 6;
+    dates.forEach((date, index) => {
+      const value = values[index];
+      const barHeight = (value / maxValue) * chartHeight;
+      const x = paddingLeft + (chartWidth / dates.length) * index + 3;
+      const y = height - paddingBottom - barHeight;
+      
+      // Bar gradient
+      const grad = ctx.createLinearGradient(x, y, x, height - paddingBottom);
+      grad.addColorStop(0, '#ff3333');
+      grad.addColorStop(1, '#990000');
+      ctx.fillStyle = grad;
+      
+      // Draw rounded rectangle
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, barWidth, barHeight, [3, 3, 0, 0]);
+      } else {
+        ctx.rect(x, y, barWidth, barHeight);
+      }
+      ctx.fill();
+      
+      // X-axis day abbreviation
+      const d = new Date(date + 'T00:00:00'); // Parse local time to avoid timezone offset shifts
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1);
+      ctx.fillStyle = '#aaaaaa';
+      ctx.font = '8.5px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(dayLabel, x + barWidth / 2, height - paddingBottom + 4);
+    });
   }
 });

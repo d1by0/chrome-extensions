@@ -5,7 +5,8 @@ let settings = {
   cleanTheater: true,
   zenTimer: true,
   timerDuration: 30,
-  sessionNotes: []
+  sessionNotes: [],
+  geminiApiKey: ''
 };
 
 let activeTimerInterval = null;
@@ -15,6 +16,8 @@ let isInitialized = false;
 
 // Note start time tracker
 let activeNoteTimestamp = null;
+let activeScreenshotDataUrl = null;
+let playbackSecondsThisSession = 0;
 
 // English Autocorrect Map
 const AUTOCORRECT_MAP = {
@@ -81,7 +84,8 @@ chrome.storage.local.get({
   cleanTheater: true,
   zenTimer: true,
   timerDuration: 30,
-  sessionNotes: []
+  sessionNotes: [],
+  geminiApiKey: ''
 }, (data) => {
   settings = data;
   isInitialized = true;
@@ -108,6 +112,18 @@ function init() {
   setInterval(() => {
     if (!settings.extensionEnabled) return;
     
+    // Track focus minutes (active educational watch page time)
+    const video = document.querySelector('video');
+    const player = document.querySelector('.html5-video-player');
+    const isPlaying = player && player.classList.contains('playing-mode');
+    if (video && isPlaying && !video.paused && !video.ended && location.pathname === '/watch') {
+      playbackSecondsThisSession++;
+      if (playbackSecondsThisSession >= 60) {
+        playbackSecondsThisSession = 0;
+        incrementAnalytics('dailyMinutes', 1);
+      }
+    }
+
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       handlePageChange();
@@ -120,6 +136,16 @@ function init() {
 
   // Initial check
   ensureUIElements();
+}
+
+function incrementAnalytics(key, amount = 1) {
+  const today = new Date().toISOString().slice(0, 10);
+  chrome.storage.local.get({ analyticsData: { dailyMinutes: {}, dailyNotes: {}, blocksPrevented: {} } }, (data) => {
+    const analytics = data.analyticsData;
+    if (!analytics[key]) analytics[key] = {};
+    analytics[key][today] = (analytics[key][today] || 0) + amount;
+    chrome.storage.local.set({ analyticsData: analytics });
+  });
 }
 
 function applySettings() {
@@ -197,6 +223,9 @@ function injectIntentPlaceholder() {
   // Find home container
   const homeContainer = document.querySelector('ytd-browse[page-subtype="home"]');
   if (!homeContainer) return;
+
+  // Increment blocked count
+  incrementAnalytics('blocksPrevented', 1);
 
   const placeholder = document.createElement('div');
   placeholder.className = 'it-home-placeholder';
@@ -492,23 +521,82 @@ function injectNotesUI() {
       <h3>Study Notes</h3>
       <button class="it-notes-close-btn">✕</button>
     </div>
-    <div class="it-notes-video-info" style="padding: 8px 14px; font-size: 11px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)); display: flex; flex-direction: column; gap: 2px;">
-      <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO:</span>
-      <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; display: block; word-break: break-word; line-height: 1.4; margin-top: 2px;" title="Click to open video link"></a>
+    <div class="it-sidebar-tabs">
+      <button class="it-tab-btn active" data-tab="notes">📝 Notes</button>
+      <button class="it-tab-btn" data-tab="summary">✨ AI Summary</button>
     </div>
-    <div class="it-notes-input-area">
-      <textarea class="it-notes-input" placeholder="Type a note and press Enter..."></textarea>
-      <div class="it-notes-input-hint">Note will save automatically with the video timestamp</div>
+    
+    <!-- Tab 1: Notes Panel -->
+    <div class="it-tab-content-notes">
+      <div class="it-notes-video-info" style="padding: 8px 14px; font-size: 11px; border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)); display: flex; flex-direction: column; gap: 2px;">
+        <span style="color: var(--yt-spec-text-secondary, #aaa); font-weight: 500;">CURRENT VIDEO:</span>
+        <a class="it-current-video-link" href="" target="_blank" style="color: var(--yt-spec-themed-blue, #3ea6ff); text-decoration: none; display: block; word-break: break-word; line-height: 1.4; margin-top: 2px;" title="Click to open video link"></a>
+      </div>
+      <div class="it-notes-input-area">
+        <textarea class="it-notes-input" placeholder="Type a note and press Enter..."></textarea>
+        <div class="it-notes-input-hint">Note will save automatically with the video timestamp</div>
+        
+        <div class="it-input-toolbar">
+          <button type="button" class="it-tool-btn it-camera-btn" title="Capture Video Screenshot">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </button>
+          <button type="button" class="it-tool-btn it-mic-btn" title="Voice Typing (Speech to Text)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+          <div class="it-screenshot-preview-container" style="display: none;">
+            <img class="it-screenshot-preview" src="" />
+            <button type="button" class="it-screenshot-remove" title="Remove Screenshot">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="it-notes-list-container">
+        <ul class="it-notes-list"></ul>
+        <div class="it-notes-summary-container"></div>
+      </div>
     </div>
-    <div class="it-notes-list-container">
-      <ul class="it-notes-list"></ul>
-      <div class="it-notes-summary-container"></div>
+    
+    <!-- Tab 2: AI Summary Panel -->
+    <div class="it-tab-content-summary" style="display: none;">
+      <div class="it-summary-panel">
+        <div class="it-summary-options">
+          <label for="it-summary-format">Summary Focus</label>
+          <select id="it-summary-format" class="it-select">
+            <option value="detailed">Detailed Study Guide</option>
+            <option value="timeline">Timeline & Milestones</option>
+            <option value="actions">Actionable Key Takeaways</option>
+            <option value="custom">Custom Focus Prompt...</option>
+          </select>
+          <input type="text" id="it-summary-custom-prompt" class="it-input" placeholder="e.g. Focus on coding examples or math equations" style="display: none; margin-top: 6px;" />
+        </div>
+        <button type="button" class="it-generate-summary-btn">✨ Generate AI Summary</button>
+        <div class="it-summary-status" style="display: none;">Extracting transcript...</div>
+        <div class="it-summary-result" style="display: none;"></div>
+      </div>
     </div>
   `;
 
   sidebar.querySelector('.it-notes-close-btn').addEventListener('click', () => {
     sidebar.classList.remove('open');
     document.body.classList.remove('it-sidebar-open');
+  });
+
+  // Tab switching logic
+  const tabs = sidebar.querySelectorAll('.it-tab-btn');
+  const notesPanel = sidebar.querySelector('.it-tab-content-notes');
+  const summaryPanel = sidebar.querySelector('.it-tab-content-summary');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (tab.dataset.tab === 'notes') {
+        notesPanel.style.display = 'flex';
+        summaryPanel.style.display = 'none';
+      } else {
+        notesPanel.style.display = 'none';
+        summaryPanel.style.display = 'flex';
+      }
+    });
   });
 
   const textarea = sidebar.querySelector('.it-notes-input');
@@ -589,12 +677,173 @@ function injectNotesUI() {
     }
   });
 
+  // Advanced Note Toolbar: Camera Screenshot
+  const cameraBtn = sidebar.querySelector('.it-camera-btn');
+  const previewContainer = sidebar.querySelector('.it-screenshot-preview-container');
+  const previewImg = sidebar.querySelector('.it-screenshot-preview');
+  const removeScreenshotBtn = sidebar.querySelector('.it-screenshot-remove');
+
+  cameraBtn.addEventListener('click', () => {
+    const video = document.querySelector('video');
+    if (video) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      activeScreenshotDataUrl = canvas.toDataURL('image/webp', 0.5);
+      previewImg.src = activeScreenshotDataUrl;
+      previewContainer.style.display = 'flex';
+      textarea.focus();
+    } else {
+      alert("No active video element found.");
+    }
+  });
+
+  removeScreenshotBtn.addEventListener('click', () => {
+    activeScreenshotDataUrl = null;
+    previewContainer.style.display = 'none';
+    textarea.focus();
+  });
+
+  // Advanced Note Toolbar: Microphone Voice Typing
+  const micBtn = sidebar.querySelector('.it-mic-btn');
+  let recognition = null;
+  let isListening = false;
+
+  micBtn.addEventListener('click', () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    if (!recognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add('recording');
+        micBtn.title = "Listening... Click to stop";
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micBtn.classList.remove('recording');
+        micBtn.title = "Voice Typing (Speech to Text)";
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        const startPos = textarea.selectionStart;
+        const endPos = textarea.selectionEnd;
+        const val = textarea.value;
+        textarea.value = val.substring(0, startPos) + transcript + val.substring(endPos);
+        textarea.dispatchEvent(new Event('input'));
+        textarea.focus();
+      };
+
+      recognition.onerror = (e) => {
+        console.error("Speech Recognition Error:", e);
+        isListening = false;
+        micBtn.classList.remove('recording');
+      };
+    }
+
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  });
+
+  // AI Summarizer logic
+  const formatSelect = sidebar.querySelector('#it-summary-format');
+  const customPromptInput = sidebar.querySelector('#it-summary-custom-prompt');
+  const generateBtn = sidebar.querySelector('.it-generate-summary-btn');
+  const statusDiv = sidebar.querySelector('.it-summary-status');
+  const resultDiv = sidebar.querySelector('.it-summary-result');
+
+  formatSelect.addEventListener('change', () => {
+    if (formatSelect.value === 'custom') {
+      customPromptInput.style.display = 'block';
+    } else {
+      customPromptInput.style.display = 'none';
+    }
+  });
+
+  generateBtn.addEventListener('click', async () => {
+    statusDiv.style.display = 'block';
+    resultDiv.style.display = 'none';
+    statusDiv.textContent = 'Extracting transcript...';
+    
+    try {
+      const transcriptSegments = await getYouTubeTranscript();
+      statusDiv.textContent = 'Analyzing transcript with AI...';
+
+      // Reconstruct transcript with timestamps
+      const transcriptText = transcriptSegments.map(s => {
+        const timeStr = formatTime(s.start);
+        return `[${timeStr}] ${s.text}`;
+      }).join('\n');
+
+      let summaryFocus = '';
+      if (formatSelect.value === 'timeline') {
+        summaryFocus = 'Create a timeline of key milestones and events with their matching timestamps.';
+      } else if (formatSelect.value === 'actions') {
+        summaryFocus = 'Extract key actionable items, instructions, or steps to take.';
+      } else if (formatSelect.value === 'detailed') {
+        summaryFocus = 'Provide a structured, detailed study guide mapping out the core concepts.';
+      } else {
+        summaryFocus = customPromptInput.value.trim() || 'Provide a high-quality summary.';
+      }
+
+      let summaryResultText = '';
+      
+      // Try window.ai first
+      let localAiAvailable = false;
+      try {
+        if (window.ai && window.ai.summarizer) {
+          const capabilities = await window.ai.summarizer.capabilities();
+          if (capabilities && capabilities.available !== 'no') {
+            localAiAvailable = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Chrome local AI check failed:", e);
+      }
+
+      if (localAiAvailable) {
+        const summarizer = await window.ai.summarizer.create({
+          type: 'tl;dr',
+          format: 'markdown',
+          length: 'medium',
+          sharedContext: `The user wants to focus on: ${summaryFocus}`
+        });
+        summaryResultText = await summarizer.summarize(transcriptText);
+      } else if (settings.geminiApiKey) {
+        summaryResultText = await summarizeWithGemini(transcriptText, summaryFocus, settings.geminiApiKey);
+      } else {
+        throw new Error("Local AI is not available. Please save a Gemini API Key in the IntentTube settings dashboard (click the extension toolbar icon) to perform summarization.");
+      }
+
+      renderSummaryText(summaryResultText, resultDiv);
+      statusDiv.style.display = 'none';
+    } catch (err) {
+      statusDiv.textContent = `Error: ${err.message}`;
+      console.error(err);
+    }
+  });
+
   document.body.appendChild(sidebar);
   renderNotesList();
 }
 
 function saveCurrentNote(noteText) {
-  if (!noteText) return;
+  if (!noteText && !activeScreenshotDataUrl) return;
 
   const video = document.querySelector('video');
   const timestamp = activeNoteTimestamp || (video ? formatTime(video.currentTime) : '0:00');
@@ -606,7 +855,8 @@ function saveCurrentNote(noteText) {
     videoUrl: location.href.split('&')[0],
     videoTitle: videoTitle,
     timestamp: timestamp,
-    noteText: noteText
+    noteText: noteText || (activeScreenshotDataUrl ? "[Captured Screen]" : ""),
+    screenshot: activeScreenshotDataUrl
   };
 
   chrome.storage.local.get({ sessionNotes: [] }, (data) => {
@@ -615,6 +865,14 @@ function saveCurrentNote(noteText) {
     chrome.storage.local.set({ sessionNotes: updatedNotes }, () => {
       settings.sessionNotes = updatedNotes;
       renderNotesList();
+      
+      // Clear screenshot preview
+      activeScreenshotDataUrl = null;
+      const preview = document.querySelector('.it-screenshot-preview-container');
+      if (preview) preview.style.display = 'none';
+      
+      // Increment notes analytics
+      incrementAnalytics('dailyNotes', 1);
     });
   });
 }
@@ -641,12 +899,23 @@ function renderNotesList() {
   currentVideoNotes.forEach(item => {
     const li = document.createElement('li');
     li.className = 'it-note-item';
+    
+    let screenshotHtml = '';
+    if (item.screenshot) {
+      screenshotHtml = `
+        <div class="it-note-screenshot-thumb-wrapper">
+          <img class="it-note-screenshot-thumb" src="${item.screenshot}" />
+        </div>
+      `;
+    }
+
     li.innerHTML = `
       <div class="it-note-header">
         <span class="it-note-timestamp">${item.timestamp}</span>
         <button class="it-note-delete" data-id="${item.id}">Delete</button>
       </div>
       <div class="it-note-text">${escapeHtml(item.noteText)}</div>
+      ${screenshotHtml}
     `;
 
     // Seek on timestamp click
@@ -662,11 +931,154 @@ function renderNotesList() {
       deleteNote(item.id);
     });
 
+    if (item.screenshot) {
+      li.querySelector('.it-note-screenshot-thumb').addEventListener('click', () => {
+        openImageModal(item.screenshot);
+      });
+    }
+
     list.appendChild(li);
   });
 
   // Generate dynamic notes summary block
   renderNotesSummary(currentVideoNotes);
+}
+
+function openImageModal(src) {
+  const modal = document.createElement('div');
+  modal.className = 'it-image-modal';
+  modal.innerHTML = `
+    <div class="it-image-modal-content">
+      <img src="${src}" />
+      <button class="it-image-modal-close">✕</button>
+    </div>
+  `;
+  modal.querySelector('.it-image-modal-close').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+  document.body.appendChild(modal);
+}
+
+function renderSummaryText(text, container) {
+  container.style.display = 'block';
+  // Parse markdown-ish linebreaks and format timestamps [MM:SS] or [HH:MM:SS] into seek links
+  const escaped = escapeHtml(text);
+  
+  // Replace [MM:SS] or [HH:MM:SS] with a link
+  const timestampRegex = /\[(\d{1,2}:)?\d{1,2}:\d{2}\]/g;
+  const rendered = escaped.replace(timestampRegex, (match) => {
+    const rawTime = match.slice(1, -1);
+    return `<a class="it-seek-link" data-time="${rawTime}">${match}</a>`;
+  });
+
+  // Simple markdown conversion: **bold** and newlines
+  const formattedHtml = rendered
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>');
+
+  container.innerHTML = formattedHtml;
+
+  // Add click listeners to seek links
+  container.querySelectorAll('.it-seek-link').forEach(link => {
+    link.addEventListener('click', () => {
+      const video = document.querySelector('video');
+      if (video) {
+        video.currentTime = parseTime(link.dataset.time);
+        video.play();
+      }
+    });
+  });
+}
+
+async function getYouTubeTranscript() {
+  try {
+    // Fetch player response
+    const playerResponse = await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.textContent = `
+        (() => {
+          const response = window.ytInitialPlayerResponse;
+          window.postMessage({ type: 'YT_PLAYER_RESPONSE', data: response }, '*');
+        })();
+      `;
+      const listener = (event) => {
+        if (event.data && event.data.type === 'YT_PLAYER_RESPONSE') {
+          window.removeEventListener('message', listener);
+          script.remove();
+          resolve(event.data.data);
+        }
+      };
+      window.addEventListener('message', listener);
+      document.head.appendChild(script);
+      setTimeout(() => reject(new Error('Timeout getting YouTube player configurations')), 2500);
+    });
+
+    if (!playerResponse || !playerResponse.captions || !playerResponse.captions.playerCaptionsTracklistRenderer) {
+      throw new Error("Transcripts are disabled or not available for this video.");
+    }
+
+    const captionTracks = playerResponse.captions.playerCaptionsTracklistRenderer.captionTracks;
+    if (!captionTracks || captionTracks.length === 0) {
+      throw new Error("No caption tracks found.");
+    }
+
+    // Prefer English, then auto-generated English, then first available
+    let track = captionTracks.find(t => t.languageCode === 'en' && !t.kind) || 
+                captionTracks.find(t => t.languageCode === 'en') || 
+                captionTracks[0];
+
+    const response = await fetch(track.baseUrl);
+    const xmlText = await response.text();
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    const textNodes = xmlDoc.getElementsByTagName('text');
+
+    const transcriptSegments = [];
+    for (let i = 0; i < textNodes.length; i++) {
+      const node = textNodes[i];
+      const start = parseFloat(node.getAttribute('start'));
+      const duration = parseFloat(node.getAttribute('dur') || '0');
+      const text = node.textContent;
+      transcriptSegments.push({ start, duration, text });
+    }
+
+    return transcriptSegments;
+  } catch (err) {
+    console.error("Transcript Extraction Error:", err);
+    throw err;
+  }
+}
+
+async function summarizeWithGemini(transcriptText, focusText, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const prompt = `You are a study assistant analyzing a video transcript.
+Deliver a highly detailed, concise, and structured summary.
+Focus: ${focusText}
+Use timestamps in the format [MM:SS] or [HH:MM:SS] next to major sections so the user can easily jump to those parts of the video.
+
+Transcript:
+${transcriptText}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }]
+    })
+  });
+  
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `HTTP ${response.status} from Gemini API`);
+  }
+
+  const data = await response.json();
+  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+    return data.candidates[0].content.parts[0].text;
+  }
+  throw new Error("No summary returned in Gemini API response.");
 }
 
 function renderNotesSummary(notes) {
