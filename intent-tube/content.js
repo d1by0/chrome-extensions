@@ -921,7 +921,15 @@ Output ONLY the clean, polished final text. Do not include quotes, explanations,
       renderSummaryText(summaryResultText, resultDiv);
       statusDiv.style.display = 'none';
     } catch (err) {
-      statusDiv.textContent = `Error: ${err.message}`;
+      statusDiv.style.display = 'none';
+      resultDiv.style.display = 'block';
+      
+      let errorMsg = err.message;
+      if (errorMsg.includes("Gemini API Key") || errorMsg.includes("Local AI")) {
+        errorMsg = `Local AI (Gemini Nano) is not enabled in Chrome.<br/><br/>Please get a free API key from <a href="https://aistudio.google.com/" target="_blank" style="color: #3ea6ff; text-decoration: underline;">Google AI Studio</a> and save it in the IntentTube settings dashboard (click the extension icon in your browser toolbar).`;
+      }
+      
+      resultDiv.innerHTML = `<div style="color: #ff4e4e; font-weight: 500; border: 1px solid rgba(255, 78, 78, 0.3); background: rgba(255, 78, 78, 0.08); padding: 10px; border-radius: 6px; line-height: 1.4;">Error: ${errorMsg}</div>`;
       console.error(err);
     }
   });
