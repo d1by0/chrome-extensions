@@ -117,9 +117,22 @@
             </ul>
           </div>
         </section>
+        
+        <!-- Gemini API Key configuration card -->
+        <div class="control-card api-card" style="flex-direction: column; align-items: stretch; gap: 8px; margin-top: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <h2 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);"><i class="bx bx-key" style="margin-right: 4px; vertical-align: middle;"></i> Gemini API Key</h2>
+            <p style="font-size: 9px; color: var(--text-muted); line-height: 1.3;">Used for fallback video summaries when local built-in AI is unavailable. Saved locally on your device.</p>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 4px;">
+            <input type="password" id="input-api-key" placeholder="Enter Gemini API Key..." class="api-key-input" style="flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); padding: 6px; font-size: 11px; outline: none;" />
+            <button id="btn-save-key" class="preset-btn" style="flex: 0 0 auto; width: 60px; padding: 6px 0;">Save</button>
+          </div>
+          <div id="save-status" style="font-size: 9px; font-weight: 500; text-align: right; display: none;"></div>
+        </div>
       </div>
 
-      <!-- PANEL 2: Analytics & API Panel -->
+      <!-- PANEL 2: Analytics Panel -->
       <div id="analytics-panel" class="tab-panel" style="display: none;">
         <!-- Stat Grid widgets -->
         <div class="stats-grid">
@@ -141,19 +154,6 @@
         <div class="control-card chart-card" style="flex-direction: column; align-items: flex-start; gap: 8px;">
           <h2 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);"><i class="bx bx-stats" style="margin-right: 4px;"></i> Weekly Focus Time</h2>
           <canvas id="analytics-chart" width="260" height="110" style="width: 100%; height: 110px;"></canvas>
-        </div>
-
-        <!-- Gemini API Key configuration card -->
-        <div class="control-card api-card" style="flex-direction: column; align-items: stretch; gap: 8px; margin-top: 10px;">
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            <h2 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);"><i class="bx bx-key" style="margin-right: 4px;"></i> Gemini API Key</h2>
-            <p style="font-size: 10px; color: var(--text-muted); line-height: 1.3;">Used for fallback video summaries when local built-in AI is unavailable. Saved locally on your device.</p>
-          </div>
-          <div style="display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 4px;">
-            <input type="password" id="input-api-key" placeholder="Enter Gemini API Key..." class="api-key-input" style="flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); padding: 6px; font-size: 11px; outline: none;" />
-            <button id="btn-save-key" class="preset-btn" style="flex: 0 0 auto; width: 60px; padding: 6px 0;">Save</button>
-          </div>
-          <div id="save-status" style="font-size: 9px; font-weight: 500; text-align: right; display: none;"></div>
         </div>
       </div>
     </main>
