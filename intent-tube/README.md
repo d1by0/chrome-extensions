@@ -83,7 +83,8 @@ Instead of fighting Google's ad-engine, I wanted to build something that restore
 - **Session Resume**: Click "Resume Session" to reset the timer and continue your study block.
 
 ### 5. Advanced Inputs (Voice & Canvas Screenshots)
-- **Voice Typing Dictation**: Dictate notes hands-free using Chrome's native Web Speech API (`webkitSpeechRecognition`).
+- **Voice Typing Dictation**: Dictate notes hands-free using Chrome's native Web Speech API (`webkitSpeechRecognition`). Includes **Live Transcription** for real-time visual typing feedback.
+- **AI Voice Restructuring**: Automatically cleans up speech filler words, repetitive pauses, and verbal self-corrections (e.g. *"i love what she said... no no i only like what she said"* -> *"I only like what she said"*). Powered by local AI or the Gemini API.
 - **Video Screenshot Capture**: Draw the active video player element onto canvas and compress it to lightweight WebP data URIs. Stored in `unlimitedStorage` and previewed inline.
 
 ### 6. AI Video Summarization & Focus Options

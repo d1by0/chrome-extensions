@@ -710,6 +710,8 @@ function injectNotesUI() {
   const micBtn = sidebar.querySelector('.it-mic-btn');
   let recognition = null;
   let isListening = false;
+  let finalTranscript = '';
+  let initialVal = '';
 
   micBtn.addEventListener('click', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -720,12 +722,14 @@ function injectNotesUI() {
 
     if (!recognition) {
       recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.lang = 'en-US';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
 
       recognition.onstart = () => {
         isListening = true;
+        finalTranscript = '';
+        initialVal = textarea.value;
         micBtn.classList.add('recording');
         micBtn.title = "Listening... Click to stop";
       };
@@ -734,16 +738,32 @@ function injectNotesUI() {
         isListening = false;
         micBtn.classList.remove('recording');
         micBtn.title = "Voice Typing (Speech to Text)";
+        
+        // Trigger AI Restructuring if transcript is gathered
+        if (finalTranscript.trim().length > 0) {
+          restructureVoiceText(finalTranscript.trim(), (cleanedText) => {
+            textarea.value = initialVal + (initialVal ? ' ' : '') + cleanedText;
+            textarea.dispatchEvent(new Event('input'));
+            textarea.focus();
+          });
+        }
       };
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const startPos = textarea.selectionStart;
-        const endPos = textarea.selectionEnd;
-        const val = textarea.value;
-        textarea.value = val.substring(0, startPos) + transcript + val.substring(endPos);
+        let interimTranscript = '';
+        let tempFinal = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            tempFinal += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        finalTranscript += tempFinal;
+        textarea.value = initialVal + (initialVal && finalTranscript ? ' ' : '') + finalTranscript + (interimTranscript ? ' ' + interimTranscript : '');
         textarea.dispatchEvent(new Event('input'));
-        textarea.focus();
       };
 
       recognition.onerror = (e) => {
@@ -759,6 +779,74 @@ function injectNotesUI() {
       recognition.start();
     }
   });
+
+  async function restructureVoiceText(rawText, callback) {
+    const hintEl = sidebar.querySelector('.it-notes-input-hint');
+    const originalHint = hintEl ? hintEl.textContent : '';
+    if (hintEl) {
+      hintEl.textContent = "✨ AI is restructuring your speech...";
+      hintEl.style.color = "#ffcc00";
+    }
+
+    try {
+      let cleanedText = '';
+      let localAiAvailable = false;
+      try {
+        if (window.ai && window.ai.languageModel) {
+          const capabilities = await window.ai.languageModel.capabilities();
+          if (capabilities && capabilities.available !== 'no') {
+            localAiAvailable = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Chrome local AI languageModel check failed:", e);
+      }
+
+      const prompt = `Clean up and restructure this voice transcription. 
+Remove verbal self-corrections, fillers (like 'um', 'ah'), repetitions, and false starts. 
+Keep it concise and clear. Preserve the original meaning and tone.
+Example: "i love what she said... no no i only like what she said" -> "I only like what she said."
+Example: "we need to build this... wait actually let's build that" -> "We need to build that."
+
+Text: "${rawText}"
+Output ONLY the clean, polished final text. Do not include quotes, explanations, or commentary.`;
+
+      if (localAiAvailable) {
+        const session = await window.ai.languageModel.create();
+        cleanedText = await session.prompt(prompt);
+        cleanedText = cleanedText.trim();
+      } else if (settings.geminiApiKey) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.geminiApiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            cleanedText = data.candidates[0].content.parts[0].text.trim();
+          }
+        }
+      }
+
+      if (cleanedText) {
+        callback(cleanedText);
+      } else {
+        callback(rawText);
+      }
+    } catch (err) {
+      console.error("Restructuring Error:", err);
+      callback(rawText);
+    } finally {
+      if (hintEl) {
+        hintEl.textContent = "Note will save automatically with the video timestamp";
+        hintEl.style.color = "";
+      }
+    }
+  }
 
   // AI Summarizer logic
   const formatSelect = sidebar.querySelector('#it-summary-format');
