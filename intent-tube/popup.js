@@ -10,13 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const notesEmptyState = document.getElementById('notes-empty-state');
   const notesList = document.getElementById('notes-list');
   const btnExportNotes = document.getElementById('btn-export-notes');
-
-  // New elements
+  
+  // Tab elements
   const navTabs = document.querySelectorAll('.nav-tab');
   const tabPanels = document.querySelectorAll('.tab-panel');
-  const inputApiKey = document.getElementById('input-api-key');
-  const btnSaveKey = document.getElementById('btn-save-key');
-  const saveStatus = document.getElementById('save-status');
 
   // Tab switching
   navTabs.forEach(tab => {
@@ -35,17 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     cleanTheater: true,
     zenTimer: true,
     timerDuration: 30, // in minutes
-    sessionNotes: [],
-    geminiApiKey: ''
+    sessionNotes: []
   };
 
-  // Load settings & API key
+  // Load settings
   chrome.storage.local.get(defaults, (settings) => {
     toggleExtension.checked = settings.extensionEnabled;
     toggleIntentGate.checked = settings.intentGate;
     toggleCleanTheater.checked = settings.cleanTheater;
     toggleZenTimer.checked = settings.zenTimer;
-    inputApiKey.value = settings.geminiApiKey || '';
     
     // Disable inputs if extension is globally disabled
     updateSubControlsState(settings.extensionEnabled);
@@ -59,17 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load notes
     renderNotes(settings.sessionNotes);
-  });
-
-  // Save Gemini API Key
-  btnSaveKey.addEventListener('click', () => {
-    const key = inputApiKey.value.trim();
-    chrome.storage.local.set({ geminiApiKey: key }, () => {
-      saveStatus.style.display = 'block';
-      saveStatus.className = 'success';
-      saveStatus.textContent = 'Saved successfully!';
-      setTimeout(() => { saveStatus.style.display = 'none'; }, 2000);
-    });
   });
 
   // Load & render Analytics Dashboard

@@ -569,6 +569,7 @@ function injectNotesUI() {
           <input type="text" id="it-summary-custom-prompt" class="it-input" placeholder="e.g. Focus on coding examples or math equations" style="display: none; margin-top: 6px;" />
         </div>
         <button type="button" class="it-generate-summary-btn">✨ Generate AI Summary</button>
+        <div class="it-summary-quota" style="font-size: 11px; text-align: center; color: var(--yt-spec-text-secondary, #aaa); margin-top: 6px; font-weight: 500;">Free summaries remaining today: 10/10</div>
         <div class="it-summary-status" style="display: none;">Extracting transcript...</div>
         <div class="it-summary-result" style="display: none;"></div>
       </div>
@@ -595,6 +596,7 @@ function injectNotesUI() {
       } else {
         notesPanel.style.display = 'none';
         summaryPanel.style.display = 'flex';
+        updateQuotaUI();
       }
     });
   });
@@ -913,13 +915,16 @@ Output ONLY the clean, polished final text. Do not include quotes, explanations,
         });
         summaryResultText = await summarizer.summarize(transcriptText);
       } else {
-        // Delegate to background script (free keyless DuckDuckGo tier, or personal Gemini API)
+        // Delegate to background script (free keyless DuckDuckGo tier)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentVideoId = urlParams.get('v');
+        
         const response = await new Promise((resolve, reject) => {
           chrome.runtime.sendMessage({
             type: 'SUMMARIZE_VIDEO',
             transcriptText,
             focusText: summaryFocus,
-            apiKey: settings.geminiApiKey
+            videoId: currentVideoId
           }, (res) => {
             if (chrome.runtime.lastError) {
               reject(new Error(chrome.runtime.lastError.message));
@@ -937,16 +942,11 @@ Output ONLY the clean, polished final text. Do not include quotes, explanations,
 
       renderSummaryText(summaryResultText, resultDiv);
       statusDiv.style.display = 'none';
+      updateQuotaUI();
     } catch (err) {
       statusDiv.style.display = 'none';
       resultDiv.style.display = 'block';
-      
-      let errorMsg = err.message;
-      if (errorMsg.includes("Gemini API Key") || errorMsg.includes("Local AI")) {
-        errorMsg = `Local AI (Gemini Nano) is not enabled in Chrome.<br/><br/>Please get a free API key from <a href="https://aistudio.google.com/" target="_blank" style="color: #3ea6ff; text-decoration: underline;">Google AI Studio</a> and save it in the IntentTube settings dashboard (click the extension icon in your browser toolbar).`;
-      }
-      
-      resultDiv.innerHTML = `<div style="color: #ff4e4e; font-weight: 500; border: 1px solid rgba(255, 78, 78, 0.3); background: rgba(255, 78, 78, 0.08); padding: 10px; border-radius: 6px; line-height: 1.4;">Error: ${errorMsg}</div>`;
+      resultDiv.innerHTML = `<div style="color: #ff4e4e; font-weight: 500; border: 1px solid rgba(255, 78, 78, 0.3); background: rgba(255, 78, 78, 0.08); padding: 10px; border-radius: 6px; line-height: 1.4;">Error: ${err.message}</div>`;
       console.error(err);
     }
   });
@@ -1154,6 +1154,10 @@ async function getYouTubeTranscript() {
       const duration = parseFloat(node.getAttribute('dur') || '0');
       const text = node.textContent;
       transcriptSegments.push({ start, duration, text });
+    }
+
+    if (transcriptSegments.length === 0) {
+      throw new Error("No caption content could be parsed from the video transcript.");
     }
 
     return transcriptSegments;
@@ -1433,4 +1437,19 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function updateQuotaUI() {
+  const today = new Date().toISOString().slice(0, 10);
+  chrome.storage.local.get({ summaryQuota: { date: today, list: [] } }, (data) => {
+    let quota = data.summaryQuota;
+    if (quota.date !== today) {
+      quota = { date: today, list: [] };
+    }
+    const remaining = Math.max(0, 10 - quota.list.length);
+    const quotaEl = document.querySelector('.it-summary-quota');
+    if (quotaEl) {
+      quotaEl.textContent = `Free summaries remaining today: ${remaining}/10`;
+    }
+  });
 }
