@@ -5,11 +5,17 @@ IntentTube is a premium, distraction-free YouTube Chrome extension designed to s
 ---
 
 ## Version & Changelog
-- **Current Version**: 1.3.2 (Spelling API Autocorrect & Multi-line Titles)
+- **Current Version**: 1.4.0 (Advanced Focus Upgrades: Summaries, Speech, Canvas, & Analytics)
 
 ### Release History
 
-#### v1.3.2 (Current) - Spelling API Autocorrect & Multi-line Titles
+#### v1.4.0 (Current) - Advanced Focus Upgrades
+- **AI Video Summarization & Custom Focus**: Extracts caption transcripts directly from YouTube, parsing the content client-side to generate summaries using Chrome's built-in `window.ai` or fallback **Gemini API**. Supports custom formats (Detailed, Timeline & Milestones, Actionable, or Custom Prompts) with interactive timestamps that seek the video player on click.
+- **Screenshot / Frame Capture**: Renders the active video frame to canvas, compressing it to low-res WebP data URIs, which save to `unlimitedStorage` and display inline inside notes.
+- **Voice Typing / Speech-to-Text**: Added hands-free note dictation using Chrome's native Web Speech API (`webkitSpeechRecognition`).
+- **Distraction Analytics Dashboard**: Added navigation tabs to the popup to reveal a glassmorphic dashboard tracking daily Focus Time, Bypassed Recommendation Feeds, and Notes Logged, illustrated by a weekly focus canvas-drawn bar chart.
+
+#### v1.3.2 - Spelling API Autocorrect & Multi-line Titles
 - **API spelling Autocorrect**: Replaced the static, limited spell map check with a live query to the public **Datamuse API** (`api.datamuse.com/words?sp=...`) to dynamically check and correct spelling mistakes/typos for full English words and vocabulary on spacebar press.
 - **Wrapped Video Titles**: Updated the sidebar's current video link styling to wrap across multiple lines rather than using `text-overflow: ellipsis`, allowing the user to view the full title.
 
@@ -75,6 +81,19 @@ Instead of fighting Google's ad-engine, I wanted to build something that restore
 - **Countdown Indicator**: Displays a subtle, unobtrusive focus timer in the top-right corner of the video player.
 - **Mindful Break Prompt**: When your configured focus limit (e.g., 15m, 30m, 45m) ends, the extension automatically pauses the video, blurs the player, and shows a full-screen break screen prompting you to step away.
 - **Session Resume**: Click "Resume Session" to reset the timer and continue your study block.
+
+### 5. Advanced Inputs (Voice & Canvas Screenshots)
+- **Voice Typing Dictation**: Dictate notes hands-free using Chrome's native Web Speech API (`webkitSpeechRecognition`).
+- **Video Screenshot Capture**: Draw the active video player element onto canvas and compress it to lightweight WebP data URIs. Stored in `unlimitedStorage` and previewed inline.
+
+### 6. AI Video Summarization & Focus Options
+- **Dynamic Transcript Fetching**: Automatically parses and fetches caption track XMLs directly from YouTube.
+- **Custom-Prompt Summary**: Generate a timeline, takeaways, detailed guide, or use a custom prompt via built-in local AI or Google Gemini API.
+- **Interactive Timestamps**: Click generated timestamps within the summary text to seek the video player to that exact frame.
+
+### 7. Distraction Analytics Dashboard
+- **Glassmorphic Popup Tab**: Switches between settings toggles and a custom stats grid tracking study time, prevented binge loops, and notes counts.
+- **Weekly Focus Canvas Chart**: Renders a beautiful daily bar chart using pure HTML5 canvas gradients.
 
 ---
 
