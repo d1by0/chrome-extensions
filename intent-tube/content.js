@@ -784,58 +784,31 @@ function injectNotesUI() {
 
   async function restructureVoiceText(rawText, callback) {
     const hintEl = sidebar.querySelector('.it-notes-input-hint');
-    const originalHint = hintEl ? hintEl.textContent : '';
     if (hintEl) {
       hintEl.textContent = "✨ AI is restructuring your speech...";
       hintEl.style.color = "#ffcc00";
     }
 
     try {
-      let cleanedText = '';
-      let localAiAvailable = false;
-      try {
-        if (window.ai && window.ai.languageModel) {
-          const capabilities = await window.ai.languageModel.capabilities();
-          if (capabilities && capabilities.available !== 'no') {
-            localAiAvailable = true;
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'RESTRUCTURE_TEXT',
+          text: rawText
+        }, (res) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (!res) {
+            reject(new Error("No response from background server. Try reloading YouTube."));
+          } else if (!res.success) {
+            reject(new Error(res.error));
+          } else {
+            resolve(res.text);
           }
-        }
-      } catch (e) {
-        console.warn("Chrome local AI languageModel check failed:", e);
-      }
-
-      const prompt = `Clean up and restructure this voice transcription. 
-Remove verbal self-corrections, fillers (like 'um', 'ah'), repetitions, and false starts. 
-Keep it concise and clear. Preserve the original meaning and tone.
-Example: "i love what she said... no no i only like what she said" -> "I only like what she said."
-Example: "we need to build this... wait actually let's build that" -> "We need to build that."
-
-Text: "${rawText}"
-Output ONLY the clean, polished final text. Do not include quotes, explanations, or commentary.`;
-
-      if (localAiAvailable) {
-        const session = await window.ai.languageModel.create();
-        cleanedText = await session.prompt(prompt);
-        cleanedText = cleanedText.trim();
-      } else if (settings.geminiApiKey) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.geminiApiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
         });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-            cleanedText = data.candidates[0].content.parts[0].text.trim();
-          }
-        }
-      }
+      });
 
-      if (cleanedText) {
-        callback(cleanedText);
+      if (response) {
+        callback(response.trim());
       } else {
         callback(rawText);
       }
@@ -891,54 +864,28 @@ Output ONLY the clean, polished final text. Do not include quotes, explanations,
         summaryFocus = customPromptInput.value.trim() || 'Provide a high-quality summary.';
       }
 
-      let summaryResultText = '';
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentVideoId = urlParams.get('v');
       
-      // Try window.ai first
-      let localAiAvailable = false;
-      try {
-        if (window.ai && window.ai.summarizer) {
-          const capabilities = await window.ai.summarizer.capabilities();
-          if (capabilities && capabilities.available !== 'no') {
-            localAiAvailable = true;
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'SUMMARIZE_VIDEO',
+          transcriptText,
+          focusText: summaryFocus,
+          videoId: currentVideoId
+        }, (res) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (!res) {
+            reject(new Error("No response from background server. Try reloading YouTube."));
+          } else if (!res.success) {
+            reject(new Error(res.error));
+          } else {
+            resolve(res.text);
           }
-        }
-      } catch (e) {
-        console.warn("Chrome local AI check failed:", e);
-      }
-
-      if (localAiAvailable) {
-        const summarizer = await window.ai.summarizer.create({
-          type: 'tl;dr',
-          format: 'markdown',
-          length: 'medium',
-          sharedContext: `The user wants to focus on: ${summaryFocus}`
         });
-        summaryResultText = await summarizer.summarize(transcriptText);
-      } else {
-        // Delegate to background script (free keyless DuckDuckGo tier)
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentVideoId = urlParams.get('v');
-        
-        const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            type: 'SUMMARIZE_VIDEO',
-            transcriptText,
-            focusText: summaryFocus,
-            videoId: currentVideoId
-          }, (res) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else if (!res) {
-              reject(new Error("No response from background server. Try reloading YouTube."));
-            } else if (!res.success) {
-              reject(new Error(res.error));
-            } else {
-              resolve(res.text);
-            }
-          });
-        });
-        summaryResultText = response;
-      }
+      });
+      const summaryResultText = response;
 
       renderSummaryText(summaryResultText, resultDiv);
       statusDiv.style.display = 'none';

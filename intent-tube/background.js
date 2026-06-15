@@ -8,7 +8,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true; // Keep channel open for async response
   }
+  if (request.type === 'RESTRUCTURE_TEXT') {
+    handleRestructureRequest(request.text)
+      .then(result => sendResponse({ success: true, text: result }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true; // Keep channel open for async response
+  }
 });
+
+async function handleRestructureRequest(text) {
+  const prompt = `Clean up and restructure this voice transcription. 
+Remove verbal self-corrections, fillers (like 'um', 'ah'), repetitions, and false starts. 
+Keep it concise and clear. Preserve the original meaning and tone.
+Example: "i love what she said... no no i only like what she said" -> "I only like what she said."
+Example: "we need to build this... wait actually let's build that" -> "We need to build that."
+
+Text: "${text}"
+Output ONLY the clean, polished final text. Do not include quotes, explanations, or commentary.`;
+
+  return queryDuckDuckGoChat(prompt);
+}
 
 async function handleSummarizeRequest(transcriptText, focusText, videoId) {
   const today = new Date().toISOString().slice(0, 10);
@@ -27,8 +46,16 @@ async function handleSummarizeRequest(transcriptText, focusText, videoId) {
     throw new Error("You have reached your daily limit of 10 free summaries today.");
   }
 
+  const prompt = `You are a study assistant analyzing a video transcript.
+Deliver a highly detailed, concise, and structured summary.
+Focus: ${focusText}
+Use timestamps in the format [MM:SS] or [HH:MM:SS] next to major sections so the user can easily jump to those parts of the video.
+
+Transcript:
+${transcriptText}`;
+
   // Attempt summarization
-  const result = await summarizeWithDuckDuckGo(transcriptText, focusText);
+  const result = await queryDuckDuckGoChat(prompt);
 
   // If successful and not already summarized, add to the daily list
   if (result && !alreadySummarized && videoId) {
@@ -39,15 +66,7 @@ async function handleSummarizeRequest(transcriptText, focusText, videoId) {
   return result;
 }
 
-async function summarizeWithDuckDuckGo(transcriptText, focusText) {
-  const prompt = `You are a study assistant analyzing a video transcript.
-Deliver a highly detailed, concise, and structured summary.
-Focus: ${focusText}
-Use timestamps in the format [MM:SS] or [HH:MM:SS] next to major sections so the user can easily jump to those parts of the video.
-
-Transcript:
-${transcriptText}`;
-
+async function queryDuckDuckGoChat(prompt) {
   // Try Meta Llama 3 first, then GPT-4o-mini as fallback
   const models = ['meta-llama/Llama-3-70b-instruct', 'gpt-4o-mini'];
   let lastError = null;
@@ -56,17 +75,30 @@ ${transcriptText}`;
     try {
       // Step 1: Get VQD Token
       const statusRes = await fetch('https://duckduckgo.com/duckchat/v1/status', {
-        headers: { 'x-vqd-accept': '1' }
+        headers: { 
+          'x-vqd-accept': '1',
+          'Origin': 'https://duckduckgo.com',
+          'Referer': 'https://duckduckgo.com/'
+        }
       });
       if (!statusRes.ok) continue;
-      const vqdToken = statusRes.headers.get('x-vqd-token') || (await statusRes.json()).vqd;
+      
+      const vqdToken = statusRes.headers.get('x-vqd-4');
+      if (!vqdToken) continue;
+
+      // Generate a random 7-character string for x-vqd-hash-1 instead of getting it from response headers
+      const letters = "abcdefghijklmnopqrstuvwxyz";
+      const randomHash = Array.from({ length: 7 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
 
       // Step 2: Request Chat Completion
       const chatRes = await fetch('https://duckduckgo.com/duckchat/v1/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-vqd-4': vqdToken
+          'x-vqd-4': vqdToken,
+          'x-vqd-hash-1': randomHash,
+          'Origin': 'https://duckduckgo.com',
+          'Referer': 'https://duckduckgo.com/'
         },
         body: JSON.stringify({
           model: model,
@@ -111,5 +143,5 @@ ${transcriptText}`;
     }
   }
 
-  throw new Error(lastError ? lastError.message : "Free summarizer engine rate-limited. Please try again later.");
+  throw new Error(lastError ? lastError.message : "Free AI helper is temporarily busy. Please try again in a moment.");
 }
