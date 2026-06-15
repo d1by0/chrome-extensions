@@ -912,10 +912,27 @@ Output ONLY the clean, polished final text. Do not include quotes, explanations,
           sharedContext: `The user wants to focus on: ${summaryFocus}`
         });
         summaryResultText = await summarizer.summarize(transcriptText);
-      } else if (settings.geminiApiKey) {
-        summaryResultText = await summarizeWithGemini(transcriptText, summaryFocus, settings.geminiApiKey);
       } else {
-        throw new Error("Local AI is not available. Please save a Gemini API Key in the IntentTube settings dashboard (click the extension toolbar icon) to perform summarization.");
+        // Delegate to background script (free keyless DuckDuckGo tier, or personal Gemini API)
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({
+            type: 'SUMMARIZE_VIDEO',
+            transcriptText,
+            focusText: summaryFocus,
+            apiKey: settings.geminiApiKey
+          }, (res) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (!res) {
+              reject(new Error("No response from background server. Try reloading YouTube."));
+            } else if (!res.success) {
+              reject(new Error(res.error));
+            } else {
+              resolve(res.text);
+            }
+          });
+        });
+        summaryResultText = response;
       }
 
       renderSummaryText(summaryResultText, resultDiv);
@@ -1146,35 +1163,6 @@ async function getYouTubeTranscript() {
   }
 }
 
-async function summarizeWithGemini(transcriptText, focusText, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-  const prompt = `You are a study assistant analyzing a video transcript.
-Deliver a highly detailed, concise, and structured summary.
-Focus: ${focusText}
-Use timestamps in the format [MM:SS] or [HH:MM:SS] next to major sections so the user can easily jump to those parts of the video.
-
-Transcript:
-${transcriptText}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
-  });
-  
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error?.message || `HTTP ${response.status} from Gemini API`);
-  }
-
-  const data = await response.json();
-  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-    return data.candidates[0].content.parts[0].text;
-  }
-  throw new Error("No summary returned in Gemini API response.");
-}
 
 function renderNotesSummary(notes) {
   const container = document.querySelector('.it-notes-summary-container');
